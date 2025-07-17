@@ -1,249 +1,347 @@
 <template>
   <v-row justify="center">
-    <v-dialog v-model="invoicesDialog" max-width="800px" min-width="800px">
-      <v-card>
-        <v-card-title>
-          <span class="text-h5 text-primary">{{
-            __('Select Return Invoice')
-          }}</span>
-        </v-card-title>
-        <v-container>
-          <!-- Invoice ID and Date Range search -->
-          <v-row class="mb-2">
-            <v-col cols="12">
-              <v-alert
-                dense
-                type="info"
-                text
-                outlined
-                v-if="!from_date && !to_date"
-              >
-                <small>{{ __('Use date range to search for older invoices') }}</small>
-              </v-alert>
-            </v-col>
-          </v-row>
-          <v-row class="mb-3">
-            <v-col cols="12" sm="6">
-              <v-text-field color="primary" :label="frappe._('Invoice ID')" bg-color="white" hide-details
-                v-model="invoice_name" density="compact" clearable></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="3">
-              <v-menu
-                v-model="fromDateMenu"
-                :close-on-content-click="false"
-                transition="scale-transition"
-                offset-y
-                min-width="auto"
-              >
-                <template v-slot:activator="{ props }">
-                  <v-text-field
-                    v-model="from_date_formatted"
-                    :label="frappe._('From Date')"
-                    prepend-icon="mdi-calendar"
-                    readonly
-                    v-bind="props"
-                    clearable
-                    @click:clear="clearFromDate"
-                    hide-details
-                    dense
-                    color="primary"
-                    outlined
-                  ></v-text-field>
-                </template>
-                <v-date-picker
-                  v-model="from_date"
-                  no-title
-                  @update:model-value="fromDateMenu = false; formatFromDate();"
-                ></v-date-picker>
-              </v-menu>
-            </v-col>
-            <v-col cols="12" sm="3">
-              <v-menu
-                v-model="toDateMenu"
-                :close-on-content-click="false"
-                transition="scale-transition"
-                offset-y
-                min-width="auto"
-              >
-                <template v-slot:activator="{ props }">
-                  <v-text-field
-                    v-model="to_date_formatted"
-                    :label="frappe._('To Date')"
-                    prepend-icon="mdi-calendar"
-                    readonly
-                    v-bind="props"
-                    clearable
-                    @click:clear="clearToDate"
-                    hide-details
-                    dense
-                    color="primary"
-                    outlined
-                  ></v-text-field>
-                </template>
-                <v-date-picker
-                  v-model="to_date"
-                  no-title
-                  @update:model-value="toDateMenu = false; formatToDate();"
-                ></v-date-picker>
-              </v-menu>
-            </v-col>
-          </v-row>
-
-          <!-- Customer search fields -->
-          <v-row class="mb-2">
-            <v-col cols="12" sm="6">
-              <v-text-field 
-                color="primary" 
-                :label="frappe._('Customer Name')" 
-                bg-color="white" 
-                hide-details
-                v-model="customer_name" 
-                density="compact" 
-                clearable
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field 
-                color="primary" 
-                :label="frappe._('Customer ID')" 
-                bg-color="white" 
-                hide-details
-                v-model="customer_id" 
-                density="compact" 
-                clearable
-              ></v-text-field>
-            </v-col>
-          </v-row>
-          <v-row class="mb-3">
-            <v-col cols="12" sm="6">
-              <v-text-field 
-                color="primary" 
-                :label="frappe._('Mobile Number')" 
-                bg-color="white" 
-                hide-details
-                v-model="mobile_no" 
-                density="compact" 
-                clearable
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field 
-                color="primary" 
-                :label="frappe._('Tax ID')" 
-                bg-color="white" 
-                hide-details
-                v-model="tax_id" 
-                density="compact" 
-                clearable
-              ></v-text-field>
-            </v-col>
-          </v-row>
-
-          <!-- Amount Filter -->
-          <v-row class="mb-3">
-            <v-col cols="12" sm="6">
-              <v-text-field 
-                color="primary" 
-                :label="frappe._('Minimum Amount')" 
-                bg-color="white" 
-                hide-details
-                v-model="min_amount" 
-                density="compact" 
-                clearable
-                type="number"
-                min="0"
-                placeholder="0"
-              ></v-text-field>
-            </v-col>
-            <v-col cols="12" sm="6">
-              <v-text-field 
-                color="primary" 
-                :label="frappe._('Maximum Amount')" 
-                bg-color="white" 
-                hide-details
-                v-model="max_amount" 
-                density="compact" 
-                clearable
-                type="number"
-                min="0"
-                placeholder="No limit"
-              ></v-text-field>
-            </v-col>
-          </v-row>
-          
-          <v-row>
-            <v-col cols="12" class="pt-0 pb-0">
-              <v-divider></v-divider>
-            </v-col>
-          </v-row>
-
-          <!-- Action buttons -->
-          <v-row class="mt-2 mb-2">
-            <v-spacer></v-spacer>
-            <v-btn variant="text" class="ml-2" color="primary" theme="dark" @click="search_invoices">
-              <v-icon left>mdi-magnify</v-icon>
-              {{ __('Search') }}
-            </v-btn>
-            <v-btn variant="text" class="ml-2" color="warning" theme="dark" @click="clear_search">
-              <v-icon left>mdi-refresh</v-icon>
-              {{ __('Clear') }}
-            </v-btn>
-            <v-btn v-if="pos_profile.posa_allow_return_without_invoice == 1" variant="text" class="ml-2" color="secondary" theme="dark" @click="return_without_invoice">
-              {{ __('Return without Invoice') }}
-            </v-btn>
-          </v-row>
-
-          <!-- Results -->
-          <v-row>
-            <v-col cols="12" class="pa-0 mt-1" v-if="dialog_data && dialog_data.length > 0">
-              <v-data-table 
-                :headers="headers" 
-                :items="dialog_data" 
-                item-key="name" 
-                class="elevation-1" 
-                show-select
-                v-model="selected" 
-                select-strategy="single" 
-                return-object
-                :footer-props="{
-                  'items-per-page-options': [10, 25, 50, 100],
-                  'items-per-page-text': 'Invoices per page'
-                }"
-                :items-per-page="25"
-              >
-                <template v-slot:item.posting_date="{ item }">
-                  {{ formatDateDisplay(item.posting_date) }}
-                </template>
-                <template v-slot:item.grand_total="{ item }">
-                  {{ currencySymbol(item.currency) }}
-                  {{ formatCurrency(item.grand_total) }}
-                </template>
-              </v-data-table>
-
-              <!-- Load More button at the bottom of results -->
-              <div class="text-center mt-3" v-if="has_more_invoices">
-                <v-btn 
-                  color="primary" 
-                  text 
-                  outlined 
-                  :loading="loading_more" 
-                  @click="load_more_invoices"
-                >
-                  {{ __('Load More Invoices') }}
-                </v-btn>
+    <v-dialog v-model="invoicesDialog" max-width="900px" persistent>
+      <v-card class="rounded-lg">
+        <!-- Header -->
+        <v-card-title class="pa-0">
+          <div class="pa-4 bg-grey-lighten-4">
+            <div class="d-flex align-center justify-space-between">
+              <div class="d-flex align-center">
+                <v-icon class="mr-3" color="grey-darken-2" size="24">mdi-receipt-text-minus</v-icon>
+                <span class="text-h6 text-grey-darken-3">{{ __('Select Return Invoice') }}</span>
               </div>
-            </v-col>
-            <v-col cols="12" class="text-center" v-else-if="searched_once && (!dialog_data || dialog_data.length === 0)">
-              <v-alert type="warning" text>
+              <v-btn 
+                icon 
+                variant="text" 
+                size="small"
+                @click="close_dialog">
+                <v-icon>mdi-close</v-icon>
+              </v-btn>
+            </div>
+          </div>
+        </v-card-title>
+
+        <v-divider></v-divider>
+
+        <v-card-text class="pa-0">
+          <v-container fluid class="pa-4">
+            <!-- Search Section -->
+            <v-expansion-panels v-model="searchPanel" class="mb-4">
+              <v-expansion-panel elevation="0">
+                <v-expansion-panel-title class="bg-blue-lighten-5 text-body-2">
+                  <v-icon size="small" class="mr-2">mdi-filter-variant</v-icon>
+                  {{ __('Search Filters') }}
+                  <template v-if="hasActiveFilters" v-slot:actions>
+                    <v-chip size="x-small" color="primary" variant="tonal">
+                      {{ activeFiltersCount }}
+                    </v-chip>
+                  </template>
+                </v-expansion-panel-title>
+                <v-expansion-panel-text class="pa-4 bg-grey-lighten-5">
+                  <!-- Invoice Search -->
+                  <div class="text-caption text-grey-darken-1 mb-2">{{ __('Invoice Details') }}</div>
+                  <v-row class="mb-3">
+                    <v-col cols="12" sm="6">
+                      <v-text-field 
+                        variant="outlined"
+                        density="compact"
+                        color="primary" 
+                        :label="__('Invoice ID')" 
+                        bg-color="white" 
+                        hide-details
+                        v-model="invoice_name" 
+                        clearable
+                        prepend-inner-icon="mdi-file-document-outline">
+                      </v-text-field>
+                    </v-col>
+                    <v-col cols="6" sm="3">
+                      <v-menu
+                        v-model="fromDateMenu"
+                        :close-on-content-click="false"
+                        transition="scale-transition"
+                        min-width="auto">
+                        <template v-slot:activator="{ props }">
+                          <v-text-field
+                            variant="outlined"
+                            density="compact"
+                            v-model="from_date_formatted"
+                            :label="__('From Date')"
+                            prepend-inner-icon="mdi-calendar"
+                            readonly
+                            v-bind="props"
+                            clearable
+                            @click:clear="clearFromDate"
+                            hide-details
+                            color="primary"
+                            bg-color="white">
+                          </v-text-field>
+                        </template>
+                        <v-date-picker
+                          v-model="from_date"
+                          no-title
+                          color="primary"
+                          @update:model-value="fromDateMenu = false; formatFromDate();">
+                        </v-date-picker>
+                      </v-menu>
+                    </v-col>
+                    <v-col cols="6" sm="3">
+                      <v-menu
+                        v-model="toDateMenu"
+                        :close-on-content-click="false"
+                        transition="scale-transition"
+                        min-width="auto">
+                        <template v-slot:activator="{ props }">
+                          <v-text-field
+                            variant="outlined"
+                            density="compact"
+                            v-model="to_date_formatted"
+                            :label="__('To Date')"
+                            prepend-inner-icon="mdi-calendar"
+                            readonly
+                            v-bind="props"
+                            clearable
+                            @click:clear="clearToDate"
+                            hide-details
+                            color="primary"
+                            bg-color="white">
+                          </v-text-field>
+                        </template>
+                        <v-date-picker
+                          v-model="to_date"
+                          no-title
+                          color="primary"
+                          @update:model-value="toDateMenu = false; formatToDate();">
+                        </v-date-picker>
+                      </v-menu>
+                    </v-col>
+                  </v-row>
+
+                  <v-divider class="my-3"></v-divider>
+
+                  <!-- Customer Search -->
+                  <div class="text-caption text-grey-darken-1 mb-2">{{ __('Customer Information') }}</div>
+                  <v-row class="mb-3">
+                    <v-col cols="12" sm="6">
+                      <v-text-field 
+                        variant="outlined"
+                        density="compact"
+                        color="primary" 
+                        :label="__('Customer Name')" 
+                        bg-color="white" 
+                        hide-details
+                        v-model="customer_name" 
+                        clearable
+                        prepend-inner-icon="mdi-account-outline">
+                      </v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field 
+                        variant="outlined"
+                        density="compact"
+                        color="primary" 
+                        :label="__('Customer ID')" 
+                        bg-color="white" 
+                        hide-details
+                        v-model="customer_id" 
+                        clearable
+                        prepend-inner-icon="mdi-identifier">
+                      </v-text-field>
+                    </v-col>
+                  </v-row>
+                  <v-row class="mb-3">
+                    <v-col cols="12" sm="6">
+                      <v-text-field 
+                        variant="outlined"
+                        density="compact"
+                        color="primary" 
+                        :label="__('Mobile Number')" 
+                        bg-color="white" 
+                        hide-details
+                        v-model="mobile_no" 
+                        clearable
+                        prepend-inner-icon="mdi-cellphone">
+                      </v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field 
+                        variant="outlined"
+                        density="compact"
+                        color="primary" 
+                        :label="__('Tax ID')" 
+                        bg-color="white" 
+                        hide-details
+                        v-model="tax_id" 
+                        clearable
+                        prepend-inner-icon="mdi-file-certificate-outline">
+                      </v-text-field>
+                    </v-col>
+                  </v-row>
+
+                  <v-divider class="my-3"></v-divider>
+
+                  <!-- Amount Filter -->
+                  <div class="text-caption text-grey-darken-1 mb-2">{{ __('Amount Range') }}</div>
+                  <v-row>
+                    <v-col cols="12" sm="6">
+                      <v-text-field 
+                        variant="outlined"
+                        density="compact"
+                        color="primary" 
+                        :label="__('Minimum Amount')" 
+                        bg-color="white" 
+                        hide-details
+                        v-model="min_amount" 
+                        clearable
+                        type="number"
+                        min="0"
+                        :placeholder="__('No minimum')"
+                        prepend-inner-icon="mdi-currency-usd">
+                      </v-text-field>
+                    </v-col>
+                    <v-col cols="12" sm="6">
+                      <v-text-field 
+                        variant="outlined"
+                        density="compact"
+                        color="primary" 
+                        :label="__('Maximum Amount')" 
+                        bg-color="white" 
+                        hide-details
+                        v-model="max_amount" 
+                        clearable
+                        type="number"
+                        min="0"
+                        :placeholder="__('No maximum')"
+                        prepend-inner-icon="mdi-currency-usd">
+                      </v-text-field>
+                    </v-col>
+                  </v-row>
+
+                  <!-- Action Buttons -->
+                  <v-row class="mt-4">
+                    <v-col cols="12" class="d-flex justify-end gap-2">
+                      <v-btn 
+                        variant="text" 
+                        color="grey" 
+                        @click="clear_search"
+                        size="small">
+                        <v-icon size="small" class="mr-1">mdi-refresh</v-icon>
+                        {{ __('Clear Filters') }}
+                      </v-btn>
+                      <v-btn 
+                        variant="flat" 
+                        color="primary" 
+                        @click="search_invoices"
+                        size="small">
+                        <v-icon size="small" class="mr-1">mdi-magnify</v-icon>
+                        {{ __('Search') }}
+                      </v-btn>
+                    </v-col>
+                  </v-row>
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
+
+            <!-- Results Section -->
+            <div v-if="searched_once">
+              <!-- No Results -->
+              <v-alert 
+                v-if="!dialog_data || dialog_data.length === 0"
+                type="info"
+                variant="tonal"
+                class="mb-4">
+                <v-icon>mdi-information-outline</v-icon>
                 {{ __('No invoices found. Try different search criteria.') }}
               </v-alert>
-            </v-col>
-          </v-row>
-        </v-container>
-        <v-card-actions class="mt-1">
+
+              <!-- Results Table -->
+              <v-card v-else flat class="border rounded-lg">
+                <v-data-table 
+                  :headers="headers" 
+                  :items="dialog_data" 
+                  item-key="name" 
+                  show-select
+                  v-model="selected" 
+                  select-strategy="single" 
+                  return-object
+                  :footer-props="{
+                    'items-per-page-options': [10, 25, 50],
+                    'items-per-page-text': __('Invoices per page')
+                  }"
+                  :items-per-page="25"
+                  class="invoice-table">
+                  <template v-slot:item.customer="{ item }">
+                    <div>
+                      <div class="text-body-2 font-weight-medium">{{ item.customer }}</div>
+                      <div class="text-caption text-grey" v-if="item.customer_name">{{ item.customer_name }}</div>
+                    </div>
+                  </template>
+                  <template v-slot:item.posting_date="{ item }">
+                    <v-chip size="small" variant="tonal" color="grey">
+                      <v-icon size="x-small" class="mr-1">mdi-calendar</v-icon>
+                      {{ formatDateDisplay(item.posting_date) }}
+                    </v-chip>
+                  </template>
+                  <template v-slot:item.name="{ item }">
+                    <span class="text-primary font-weight-medium">{{ item.name }}</span>
+                  </template>
+                  <template v-slot:item.grand_total="{ item }">
+                    <div class="text-right">
+                      <span class="text-h6 font-weight-bold text-green-darken-2">
+                        {{ currencySymbol(item.currency) }}{{ formatCurrency(item.grand_total) }}
+                      </span>
+                    </div>
+                  </template>
+                </v-data-table>
+
+                <!-- Load More -->
+                <div class="text-center pa-3 bg-grey-lighten-5" v-if="has_more_invoices">
+                  <v-btn 
+                    variant="text"
+                    color="primary" 
+                    :loading="loading_more" 
+                    @click="load_more_invoices">
+                    <v-icon size="small" class="mr-1">mdi-chevron-down</v-icon>
+                    {{ __('Load More Invoices') }}
+                  </v-btn>
+                </div>
+              </v-card>
+            </div>
+
+            <!-- Initial State -->
+            <div v-else class="text-center py-8">
+              <v-icon size="64" color="grey-lighten-2">mdi-file-search-outline</v-icon>
+              <p class="text-h6 text-grey-darken-1 mt-4">{{ __('Search for invoices to return') }}</p>
+              <p class="text-body-2 text-grey">{{ __('Use the filters above to find specific invoices') }}</p>
+            </div>
+          </v-container>
+        </v-card-text>
+
+        <v-divider></v-divider>
+
+        <!-- Footer Actions -->
+        <v-card-actions class="pa-4 bg-grey-lighten-5">
+          <v-btn 
+            v-if="pos_profile.posa_allow_return_without_invoice == 1" 
+            variant="text" 
+            color="secondary"
+            @click="return_without_invoice">
+            <v-icon size="small" class="mr-1">mdi-receipt-text-remove</v-icon>
+            {{ __('Return without Invoice') }}
+          </v-btn>
           <v-spacer></v-spacer>
-          <v-btn color="error mx-2" theme="dark" @click="close_dialog">{{ __('Close') }}</v-btn>
-          <v-btn v-if="selected.length" color="success" theme="dark" @click="submit_dialog">{{ __('Select') }}</v-btn>
+          <v-btn 
+            variant="text" 
+            @click="close_dialog">
+            {{ __('Cancel') }}
+          </v-btn>
+          <v-btn 
+            v-if="selected.length" 
+            color="primary" 
+            variant="flat"
+            @click="submit_dialog">
+            <v-icon size="small" class="mr-1">mdi-check</v-icon>
+            {{ __('Process Return') }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -257,6 +355,7 @@ export default {
   mixins: [format],
   data: () => ({
     invoicesDialog: false,
+    searchPanel: 0,
     singleSelect: true,
     selected: [],
     dialog_data: [],
@@ -289,7 +388,7 @@ export default {
       },
       {
         title: __('Date'),
-        align: 'start',
+        align: 'center',
         sortable: true,
         value: 'posting_date',
       },
@@ -303,10 +402,32 @@ export default {
         title: __('Amount'),
         value: 'grand_total',
         align: 'end',
-        sortable: false,
+        sortable: true,
       },
     ],
   }),
+  
+  computed: {
+    hasActiveFilters() {
+      return this.invoice_name || this.customer_name || this.customer_id || 
+             this.mobile_no || this.tax_id || this.from_date || this.to_date || 
+             this.min_amount || this.max_amount;
+    },
+    activeFiltersCount() {
+      let count = 0;
+      if (this.invoice_name) count++;
+      if (this.customer_name) count++;
+      if (this.customer_id) count++;
+      if (this.mobile_no) count++;
+      if (this.tax_id) count++;
+      if (this.from_date) count++;
+      if (this.to_date) count++;
+      if (this.min_amount) count++;
+      if (this.max_amount) count++;
+      return count;
+    }
+  },
+  
   watch: {
     from_date() {
       this.formatFromDate();
@@ -315,11 +436,11 @@ export default {
       this.formatToDate();
     }
   },
+  
   methods: {
     formatDateDisplay(dateStr) {
       if (!dateStr) return '';
       try {
-        // Convert YYYY-MM-DD to DD/MM/YYYY
         const parts = dateStr.split('-');
         if (parts.length === 3) {
           return `${parts[2]}/${parts[1]}/${parts[0]}`;
@@ -329,19 +450,18 @@ export default {
       }
       return dateStr;
     },
+    
     formatFromDate() {
       if (this.from_date) {
         try {
           let dateString = '';
           
-          // Handle Date object
           if (typeof this.from_date === 'object' && this.from_date instanceof Date) {
             const day = String(this.from_date.getDate()).padStart(2, '0');
             const month = String(this.from_date.getMonth() + 1).padStart(2, '0');
             const year = this.from_date.getFullYear();
             dateString = `${day}/${month}/${year}`;
           }
-          // Handle string in YYYY-MM-DD format
           else if (typeof this.from_date === 'string' && this.from_date.includes('-')) {
             const parts = this.from_date.split('-');
             if (parts.length === 3) {
@@ -350,7 +470,6 @@ export default {
               dateString = this.from_date;
             }
           } 
-          // Handle any other format - just display as is
           else {
             dateString = String(this.from_date);
           }
@@ -364,19 +483,18 @@ export default {
         this.from_date_formatted = null;
       }
     },
+    
     formatToDate() {
       if (this.to_date) {
         try {
           let dateString = '';
           
-          // Handle Date object
           if (typeof this.to_date === 'object' && this.to_date instanceof Date) {
             const day = String(this.to_date.getDate()).padStart(2, '0');
             const month = String(this.to_date.getMonth() + 1).padStart(2, '0');
             const year = this.to_date.getFullYear();
             dateString = `${day}/${month}/${year}`;
           }
-          // Handle string in YYYY-MM-DD format
           else if (typeof this.to_date === 'string' && this.to_date.includes('-')) {
             const parts = this.to_date.split('-');
             if (parts.length === 3) {
@@ -385,7 +503,6 @@ export default {
               dateString = this.to_date;
             }
           }
-          // Handle any other format - just display as is
           else {
             dateString = String(this.to_date);
           }
@@ -399,17 +516,21 @@ export default {
         this.to_date_formatted = null;
       }
     },
+    
     clearFromDate() {
       this.from_date = null;
       this.from_date_formatted = null;
     },
+    
     clearToDate() {
       this.to_date = null;
       this.to_date_formatted = null;
     },
+    
     close_dialog() {
       this.invoicesDialog = false;
     },
+    
     clear_search() {
       this.invoice_name = '';
       this.customer_name = '';
@@ -427,27 +548,23 @@ export default {
       this.has_more_invoices = false;
       this.searched_once = false;
     },
-    search_invoices_by_enter(e) {
-      if (e.keyCode === 13) {
-        this.search_invoices();
-      }
-    },
+    
     search_invoices() {
       this.page = 1;
       this.dialog_data = [];
       this.perform_search();
+      this.searchPanel = null; // Collapse the search panel after searching
     },
+    
     perform_search() {
       const vm = this;
       vm.loading_more = true;
       
-      // Format dates for API call in YYYY-MM-DD format
       let formattedFromDate = null;
       let formattedToDate = null;
       
       if (vm.from_date) {
         if (typeof vm.from_date === 'object' && vm.from_date instanceof Date) {
-          // Format Date object to YYYY-MM-DD
           formattedFromDate = [
             vm.from_date.getFullYear(),
             String(vm.from_date.getMonth() + 1).padStart(2, '0'),
@@ -455,16 +572,13 @@ export default {
           ].join('-');
         } else if (typeof vm.from_date === 'string') {
           if (vm.from_date.includes('/')) {
-            // Convert DD/MM/YYYY to YYYY-MM-DD
             const parts = vm.from_date.split('/');
             if (parts.length === 3) {
               formattedFromDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
           } else if (vm.from_date.includes('-')) {
-            // Already in YYYY-MM-DD format
             formattedFromDate = vm.from_date;
           } else {
-            // Invalid format, skip date filter
             formattedFromDate = null;
           }
         }
@@ -472,7 +586,6 @@ export default {
       
       if (vm.to_date) {
         if (typeof vm.to_date === 'object' && vm.to_date instanceof Date) {
-          // Format Date object to YYYY-MM-DD
           formattedToDate = [
             vm.to_date.getFullYear(),
             String(vm.to_date.getMonth() + 1).padStart(2, '0'),
@@ -480,26 +593,21 @@ export default {
           ].join('-');
         } else if (typeof vm.to_date === 'string') {
           if (vm.to_date.includes('/')) {
-            // Convert DD/MM/YYYY to YYYY-MM-DD
             const parts = vm.to_date.split('/');
             if (parts.length === 3) {
               formattedToDate = `${parts[2]}-${parts[1]}-${parts[0]}`;
             }
           } else if (vm.to_date.includes('-')) {
-            // Already in YYYY-MM-DD format
             formattedToDate = vm.to_date;
           } else {
-            // Invalid format, skip date filter
             formattedToDate = null;
           }
         }
       }
       
-      // Process amount filters
       let minAmount = vm.min_amount ? parseFloat(vm.min_amount) : null;
       let maxAmount = vm.max_amount ? parseFloat(vm.max_amount) : null;
       
-      // Save current search parameters for "load more" functionality
       this.current_search_params = {
         invoice_name: vm.invoice_name,
         customer_name: vm.customer_name,
@@ -522,22 +630,16 @@ export default {
           vm.searched_once = true;
           
           if (r.message) {
-            // If this is page 1, replace data, otherwise append
             if (vm.page === 1) {
               vm.dialog_data = r.message.invoices;
             } else {
               vm.dialog_data = [...vm.dialog_data, ...r.message.invoices];
             }
             
-            // Set flag if there are more invoices to load
             vm.has_more_invoices = r.message.has_more;
           } else {
             vm.dialog_data = [];
             vm.has_more_invoices = false;
-            vm.eventBus.emit('show_message', {
-              title: __('No invoices found'),
-              color: 'warning',
-            });
           }
         },
         error: function(err) {
@@ -550,32 +652,29 @@ export default {
         }
       });
     },
+    
     load_more_invoices() {
       this.page += 1;
       this.perform_search();
     },
+    
     return_without_invoice() {
-      console.log('Starting return without invoice flow');
       const invoice_doc = {};
       invoice_doc.items = [];
       invoice_doc.is_return = 1;
       const data = { invoice_doc };
-      console.log('Emitting load_return_invoice event with data:', data);
       this.eventBus.emit('load_return_invoice', data);
       this.invoicesDialog = false;
     },
+    
     submit_dialog() {
       if (this.selected.length > 0) {
-        console.log('Starting return with invoice flow');
         const return_doc = this.selected[0];
         const invoice_doc = {};
         const items = [];
         
-        console.log('Original return doc:', return_doc);
-        
         return_doc.items.forEach((item) => {
           const new_item = { ...item };
-          // Make sure quantities are negative for returns
           new_item.qty = item.qty > 0 ? item.qty * -1 : item.qty;
           new_item.stock_qty = item.stock_qty > 0 ? item.stock_qty * -1 : item.stock_qty;
           new_item.amount = item.amount > 0 ? item.amount * -1 : item.amount;
@@ -587,26 +686,24 @@ export default {
         invoice_doc.return_against = return_doc.name;
         invoice_doc.customer = return_doc.customer;
         
-        // Make sure grand_total is negative for returns
         if (return_doc.grand_total > 0) {
           invoice_doc.grand_total = return_doc.grand_total * -1;
         } else {
           invoice_doc.grand_total = return_doc.grand_total;
         }
         
-        // These fields ensure proper return handling
         invoice_doc.update_stock = 1;
         invoice_doc.pos_profile = this.pos_profile.name;
         invoice_doc.company = this.company;
         
         const data = { invoice_doc, return_doc };
-        console.log('Emitting load_return_invoice event with data:', data);
         
         this.eventBus.emit('load_return_invoice', data);
         this.invoicesDialog = false;
       }
     },
   },
+  
   created: function () {
     this.eventBus.on('open_returns', (data) => {
       this.invoicesDialog = true;
@@ -627,15 +724,86 @@ export default {
       this.page = 1;
       this.has_more_invoices = false;
       this.searched_once = false;
+      this.searchPanel = 0;
     });
 
     this.eventBus.on('register_pos_profile', (data) => {
       this.pos_profile = data.pos_profile;
     });
   },
+  
   beforeUnmount() {
     this.eventBus.off('open_returns');
     this.eventBus.off('register_pos_profile');
   },
 };
 </script>
+
+<style scoped>
+.invoice-table :deep(.v-data-table__td) {
+  padding: 12px 16px;
+}
+
+.invoice-table :deep(.v-data-table-header__content) {
+  font-weight: 600;
+  color: #616161;
+}
+
+.gap-2 {
+  gap: 8px;
+}
+
+/* تحسين مظهر expansion panel */
+.v-expansion-panel-title {
+  padding: 12px 16px;
+  min-height: 48px;
+}
+
+.v-expansion-panel-text {
+  padding: 16px;
+}
+
+/* تحسين التمرير */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d0d0d0;
+}
+
+/* دعم RTL */
+[dir="rtl"] .mr-3 {
+  margin-right: 0 !important;
+  margin-left: 0.75rem !important;
+}
+
+[dir="rtl"] .mr-1 {
+  margin-right: 0 !important;
+  margin-left: 0.25rem !important;
+}
+
+/* إزالة text-transform من الأزرار */
+.v-btn {
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* تحسين مظهر الجدول */
+.v-data-table {
+  border: none !important;
+}
+
+.v-data-table :deep(.v-table__wrapper) {
+  border-radius: 8px;
+}
+</style>

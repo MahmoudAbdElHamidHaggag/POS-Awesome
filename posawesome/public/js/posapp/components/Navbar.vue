@@ -1,738 +1,640 @@
 <template>
-  <!-- Main navigation container -->
   <nav>
+    <div 
+      class="navbar-container"
+      :class="{ 
+        'navbar-hidden': !navbarVisible, 
+        'navbar-locked': isNavbarLocked 
+      }"
+      @mouseenter="onNavbarEnter"
+      @mouseleave="onNavbarLeave"
+    >
+      <v-toolbar 
+        height="56" 
+        class="navbar-toolbar"
+        color="white"
+        elevation="2"
+      >
+        <v-toolbar-title @click="go_desk" style="cursor: pointer" class="text-uppercase text-primary mx-3">
+          <span class="font-weight-light">HIGHSPEED</span>
+          <span class="font-weight-bold ml-1">IT</span>
+        </v-toolbar-title>
 
-    <!-- Top App Bar: application header with nav toggle, logo, title, and actions -->
+        <v-spacer></v-spacer>
 
-    <v-app-bar app flat height="56" color="white" class="border-bottom">
-      <v-app-bar-nav-icon ref="navIcon" @click="handleNavClick" class="text-secondary" />
-
-      <v-img src="/assets/posawesome/js/posapp/components/pos/pos.png" alt="POS Awesome" max-width="32" class="mx-3" />
-
-      <v-toolbar-title @click="goDesk" class="text-h6 font-weight-bold text-primary" style="cursor: pointer;">
-        <span class="font-weight-light">POS</span><span>Awesome</span>
-      </v-toolbar-title>
-
-      <v-spacer />
-
-      <!-- This component visually indicates the current network and server connectivity status.
-           It changes color and icon based on whether there's internet, server connection, or if it's connecting. -->
-      <v-tooltip bottom>
-        <template #activator="{ on, attrs }">
-          <v-badge :content="pendingInvoices" :model-value="pendingInvoices > 0" color="red" overlap offset-x="4" offset-y="4">
-            <v-btn icon v-bind="attrs" v-on="on" :title="statusText" class="mx-2">
-              <v-progress-circular v-if="serverConnecting" indeterminate color="blue" size="24"
-                width="2"></v-progress-circular>
-              <v-icon v-else :color="statusColor" size="24">
-                {{ statusIcon }}
-              </v-icon>
-            </v-btn>
-          </v-badge>
-        </template>
-        <span>{{ statusText }}</span>
-      </v-tooltip>
-      <span class="mx-2 text-caption">{{ syncInfoText }}</span>
-
-      <v-btn style="cursor: unset; text-transform: none;" variant="text" color="primary">
-        {{ posProfile.name }}
-      </v-btn>
-
-      <v-menu offset-y offset-x :min-width="200">
-        <template #activator="{ props }">
-          <v-btn v-bind="props" color="primary" theme="dark" variant="text" class="user-menu-btn">
-            {{ __('Menu') }}
-            <v-icon right>mdi-menu-down</v-icon>
+        <div class="d-flex align-center">
+          <v-btn 
+            :variant="currentPage === 'POS' ? 'tonal' : 'text'"
+            color="primary"
+            size="small"
+            @click="changePage('POS')"
+            class="mx-1"
+          >
+            <v-icon size="20" :start="!isRTL" :end="isRTL">mdi-network-pos</v-icon>
+            <span>{{ __('POS') }}</span>
           </v-btn>
-        </template>
-        <v-card class="user-menu-card" tile>
-          <v-list dense class="user-menu-list">
-            <v-list-item v-if="!posProfile.posa_hide_closing_shift" @click="openCloseShift" class="user-menu-item">
-              <v-list-item-icon><v-icon>mdi-content-save-move-outline</v-icon></v-list-item-icon>
-              <v-list-item-title>{{ __('Close Shift') }}</v-list-item-title>
-            </v-list-item>
-            <v-list-item v-if="posProfile.posa_allow_print_last_invoice && lastInvoiceId" @click="printLastInvoice"
-              class="user-menu-item">
-              <v-list-item-icon><v-icon>mdi-printer</v-icon></v-list-item-icon>
-              <v-list-item-title>{{ __('Print Last Invoice') }}</v-list-item-title>
-            </v-list-item>
-            <v-list-item @click="syncPendingInvoices" class="user-menu-item">
-              <v-list-item-icon><v-icon>mdi-sync</v-icon></v-list-item-icon>
-              <v-list-item-title>{{ __('Sync Offline Invoices') }}</v-list-item-title>
-            </v-list-item>
-            <v-divider class="my-2" />
-            <v-list-item @click="logOut" class="user-menu-item">
-              <v-list-item-icon><v-icon>mdi-logout</v-icon></v-list-item-icon>
-              <v-list-item-title>{{ __('Logout') }}</v-list-item-title>
-            </v-list-item>
-            <v-list-item @click="goAbout" class="user-menu-item">
-              <v-list-item-icon><v-icon>mdi-information-outline</v-icon></v-list-item-icon>
-              <v-list-item-title>{{ __('About') }}</v-list-item-title>
-            </v-list-item>
-          </v-list>
-        </v-card>
-      </v-menu>
-    </v-app-bar>
 
-    <!-- This drawer slides out from the left, providing additional navigation options.
-         It can be in a mini-variant (collapsed) or expanded state. -->
-    <v-navigation-drawer app v-model="drawer" :mini-variant="mini" expand-on-hover width="220" class="drawer-custom"
-      @mouseleave="handleMouseLeave">
-      <div v-if="!mini" class="drawer-header">
-        <v-avatar size="40"><v-img :src="companyImg" alt="Company logo" /></v-avatar>
-        <span class="drawer-company">{{ company }}</span>
-        <v-btn icon @click.stop="mini = true"><v-icon>mdi-chevron-left</v-icon></v-btn>
-      </div>
-      <div v-else class="drawer-header-mini">
-        <v-avatar size="40"><v-img :src="companyImg" alt="Company logo" /></v-avatar>
-      </div>
+          <v-btn 
+            v-if="pos_profile.posa_use_pos_awesome_payments"
+            :variant="currentPage === 'Payments' ? 'tonal' : 'text'"
+            color="primary"
+            size="small"
+            @click="changePage('Payments')"
+            class="mx-1"
+          >
+            <v-icon size="20" :start="!isRTL" :end="isRTL">mdi-cash-register</v-icon>
+            <span>{{ __('Payments') }}</span>
+          </v-btn>
 
-      <v-divider />
+          <v-chip variant="outlined" color="primary" size="small" class="mx-2">
+            <v-icon size="16" :start="!isRTL" :end="isRTL">mdi-store</v-icon>
+            <span>{{ pos_profile.name }}</span>
+          </v-chip>
+        </div>
 
-      <v-list dense nav>
-        <v-list-item-group v-model="item" active-class="active-item">
-          <v-list-item v-for="i in items" :key="i.text" @click="changePage(i.text)" class="drawer-item">
-            <v-list-item-icon><v-icon class="drawer-icon">{{ i.icon }}</v-icon></v-list-item-icon>
-            <v-list-item-content v-if="!mini">
-              <v-list-item-title class="drawer-item-title">{{ i.text }}</v-list-item-title>
-            </v-list-item-content>
-          </v-list-item>
-        </v-list-item-group>
-      </v-list>
-    </v-navigation-drawer>
+        <v-spacer></v-spacer>
 
-    <v-snackbar v-model="snack" :timeout="5000" :color="snackColor" location="top right">
+        <div class="d-flex align-center" :class="{ 'flex-row-reverse': isRTL }">
+          <v-btn 
+            icon 
+            @click="showInvoicesDialog = true"
+            variant="text" 
+            color="primary"
+            size="small"
+            :title="__('Recent Invoices')"
+            class="mx-1"
+          >
+            <v-badge 
+              v-if="lastInvoices.length > 0" 
+              :content="lastInvoices.length"
+              color="error"
+              dot
+            >
+              <v-icon>mdi-receipt-text</v-icon>
+            </v-badge>
+            <v-icon v-else>mdi-receipt-text</v-icon>
+          </v-btn>
+
+          <v-btn 
+            v-if="!pos_profile.posa_hide_closing_shift"
+            icon 
+            @click="close_shift_dialog"
+            variant="text" 
+            color="primary"
+            size="small"
+            :title="__('Close Shift')"
+            class="mx-1"
+          >
+            <v-icon>mdi-content-save-move-outline</v-icon>
+          </v-btn>
+
+          <v-btn 
+            v-if="pos_profile.posa_allow_print_last_invoice && last_invoice"
+            icon 
+            @click="print_last_invoice"
+            variant="text" 
+            color="primary"
+            size="small"
+            :title="__('Print Last Invoice')"
+            class="mx-1"
+          >
+            <v-icon>mdi-printer</v-icon>
+          </v-btn>
+
+          <v-divider vertical class="mx-2" style="height: 24px;"></v-divider>
+
+          <v-btn 
+            icon 
+            @click.stop="toggleNavbarLock" 
+            variant="text" 
+            color="primary"
+            size="small"
+            :title="isNavbarLocked ? __('Unpin Navbar') : __('Pin Navbar')"
+            class="mx-1"
+          >
+            <v-icon>{{ isNavbarLocked ? 'mdi-pin' : 'mdi-pin-outline' }}</v-icon>
+          </v-btn>
+
+          <v-btn 
+            icon 
+            @click.stop="toggleFullScreen" 
+            variant="text" 
+            color="primary"
+            size="small"
+            :title="isFullscreen ? __('Exit Fullscreen') : __('Fullscreen')"
+            class="mx-1"
+          >
+            <v-icon>{{ isFullscreen ? 'mdi-fullscreen-exit' : 'mdi-fullscreen' }}</v-icon>
+          </v-btn>
+
+          <v-btn 
+            icon 
+            @click="logOut"
+            variant="text" 
+            color="primary"
+            size="small"
+            :title="__('Logout')"
+            class="mx-1"
+          >
+            <v-icon>mdi-logout</v-icon>
+          </v-btn>
+        </div>
+      </v-toolbar>
+    </div>
+
+    <div 
+      v-if="!navbarVisible && !isNavbarLocked"
+      class="navbar-hover-zone"
+      @mouseenter="showNavbar"
+    ></div>
+
+    <v-dialog v-model="showInvoicesDialog" max-width="1000" scrollable>
+      <v-card class="invoice-dialog">
+        <v-card-title class="invoice-header d-flex align-center">
+          <span class="text-h6">{{ __('Recent Invoices') }}</span>
+          <v-spacer></v-spacer>
+          <v-btn icon variant="text" @click="showInvoicesDialog = false">
+            <v-icon>mdi-close</v-icon>
+          </v-btn>
+        </v-card-title>
+        
+        <v-divider></v-divider>
+        
+        <v-card-text class="pa-0">
+          <v-table class="invoice-table" fixed-header height="450">
+            <thead>
+              <tr>
+                <th class="text-center" width="150">{{ __('Actions') }}</th>
+                <th :class="isRTL ? 'text-right' : 'text-left'" width="200">{{ __('Amount') }}</th>
+                <th :class="isRTL ? 'text-right' : 'text-left'">{{ __('Date') }}</th>
+                <th :class="isRTL ? 'text-right' : 'text-left'">{{ __('Customer') }}</th>
+                <th :class="isRTL ? 'text-right' : 'text-left'">{{ __('Invoice') }}</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="invoice in lastInvoices" :key="invoice.name" class="invoice-row">
+                <td class="text-center">
+                  <v-btn 
+                    icon 
+                    size="small" 
+                    @click="printInvoiceDirect(invoice.name)"
+                    color="primary"
+                    variant="tonal"
+                    class="ma-1"
+                  >
+                    <v-icon size="20">mdi-printer</v-icon>
+                  </v-btn>
+                  <v-btn 
+                    icon 
+                    size="small" 
+                    @click="viewInvoice(invoice.name)"
+                    color="grey"
+                    variant="tonal"
+                    class="ma-1"
+                  >
+                    <v-icon size="20">mdi-eye</v-icon>
+                  </v-btn>
+                </td>
+                <td :class="isRTL ? 'text-right' : 'text-left'">
+                  <span class="font-weight-medium">{{ currencySymbol(invoice.currency) }}{{ formatCurrency(invoice.grand_total) }}</span>
+                </td>
+                <td :class="isRTL ? 'text-right' : 'text-left'">{{ formatDate(invoice.posting_date) }}</td>
+                <td :class="isRTL ? 'text-right' : 'text-left'">{{ invoice.customer_name || __('Walk-in Customer') }}</td>
+                <td :class="isRTL ? 'text-right' : 'text-left'">{{ invoice.name }}</td>
+              </tr>
+            </tbody>
+          </v-table>
+          
+          <div v-if="lastInvoices.length === 0" class="empty-state text-center pa-8">
+            <v-icon size="64" color="grey-lighten-2">mdi-receipt-text-remove</v-icon>
+            <p class="text-h6 mt-4">{{ __('No invoices found') }}</p>
+            <p class="text-body-2 text-grey">{{ __('Your recent invoices will appear here') }}</p>
+          </div>
+        </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <v-snackbar 
+      v-model="snack" 
+      :timeout="5000" 
+      :color="snackColor" 
+      :location="isRTL ? 'top left' : 'top right'"
+    >
       {{ snackText }}
+      <template v-slot:actions>
+        <v-btn variant="text" @click="snack = false">
+          <v-icon>mdi-close</v-icon>
+        </v-btn>
+      </template>
     </v-snackbar>
 
-    <v-dialog v-model="freeze" persistent max-width="290">
+    <v-dialog v-model="freeze" persistent max-width="320">
       <v-card>
-        <v-card-title class="text-h5">{{ freezeTitle }}</v-card-title>
+        <v-card-title>{{ freezeTitle }}</v-card-title>
         <v-card-text>{{ freezeMsg }}</v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-progress-circular indeterminate color="primary" size="24"></v-progress-circular>
+        </v-card-actions>
       </v-card>
     </v-dialog>
   </nav>
 </template>
 
 <script>
-// Import the Socket.IO client library for real-time server status monitoring.
-// This import is crucial for the server connectivity indicator.
-import { io } from 'socket.io-client';
-import { getPendingOfflineInvoiceCount, syncOfflineInvoices, isOffline, getLastSyncTotals } from '../../offline.js';
-
 export default {
-  name: 'NavBar', // Component name
   data() {
     return {
-      drawer: false, // Controls the visibility of the side navigation drawer (true for open, false for closed)
-      mini: true, // Controls the mini-variant (collapsed) state of the drawer (true for collapsed, false for expanded)
-      item: 0, // Index of the currently selected item in the drawer list, used for active styling
-      items: [{ text: 'POS', icon: 'mdi-network-pos' }], // Array of navigation items for the drawer. Each item has text and a Material Design Icon.
-      company: 'POS Awesome', // Default company name, used if not fetched from Frappe boot data
-      companyImg: '/assets/erpnext/images/erpnext-logo.svg', // Default path to the company logo image
-      posProfile: {}, // Object to store the current POS profile data, fetched from the backend
-      lastInvoiceId: null, // Stores the ID of the last generated sales invoice, used for re-printing
-      snack: false, // Controls the visibility of the snackbar (true for visible, false for hidden)
-      snackColor: '', // Color of the snackbar (e.g., 'success', 'error', 'info')
-      snackText: '', // Text content displayed within the snackbar
-      freeze: false, // Controls the visibility of the freeze dialog (true for visible, false for hidden)
-      freezeTitle: '', // Title text for the freeze dialog
-      freezeMsg: '', // Message text for the freeze dialog
-      // --- PENDING OFFLINE INVOICES ---
-      pendingInvoices: 0, // Number of invoices saved locally while offline
-      syncTotals: getLastSyncTotals(),
-      // --- SIGNAL INDICATOR STATES ---
-      networkOnline: navigator.onLine, // Boolean: Reflects the browser's current network connectivity (true if online, false if offline)
-      serverOnline: false,             // Boolean: Reflects the real-time server health via WebSocket (true if connected, false if disconnected)
-      serverConnecting: false,         // Boolean: Indicates if the client is currently attempting to establish a connection to the server via WebSocket
-      socket: null,                    // Instance of the Socket.IO client, used for real-time communication with the server
-      offlineMessageShown: false       // Flag to avoid repeating offline warnings
+      currentPage: 'POS',
+      snack: false,
+      snackColor: '',
+      snackText: '',
+      company: 'HIGHSPEED IT',
+      company_img: '/assets/erpnext/images/erpnext-logo.svg',
+      pos_profile: '',
+      freeze: false,
+      freezeTitle: '',
+      freezeMsg: '',
+      last_invoice: '',
+      lastInvoices: [],
+      showInvoicesDialog: false,
+      isFullscreen: false,
+      isNavbarLocked: false,
+      navbarVisible: false,
+      hideTimer: null,
+      isRTL: false,
     };
   },
-  computed: {
-    /**
-     * Determines the color of the status icon based on current network and server connectivity.
-     * @returns {string} A Vuetify color string ('blue', 'green', 'orange', 'red').
-     */
-    statusColor() {
-      if (this.serverConnecting) return 'blue'; // Blue when actively trying to connect to the server
-      if (this.networkOnline && this.serverOnline) return 'green'; // Green when both internet and server are connected
-      if (this.networkOnline && !this.serverOnline) return 'orange'; // Orange when internet is available but server is unreachable
-      return 'red'; // Red when there is no internet connection at all
+  
+  methods: {
+    showNavbar() {
+      this.navbarVisible = true;
+      this.clearHideTimer();
     },
-    /**
-     * Determines the Material Design Icon to display based on network and server status.
-     * @returns {string} A Material Design Icon class string.
-     */
-    statusIcon() {
-      // Note: 'mdi-loading' is conceptually here, but `v-progress-circular` handles the visual loading state.
-      if (this.networkOnline && this.serverOnline) return 'mdi-wifi'; // Wi-Fi icon when connected to server
-      if (this.networkOnline && !this.serverOnline) return 'mdi-wifi-strength-alert-outline'; // Wi-Fi with alert for server offline
-      return 'mdi-wifi-off'; // Wi-Fi off icon when no internet connection
+    
+    hideNavbar() {
+      if (!this.isNavbarLocked) {
+        this.navbarVisible = false;
+      }
     },
-    /**
-     * Provides a descriptive text for the tooltip that appears when hovering over the status icon.
-     * This text is also used for the `title` attribute of the button.
-     * @returns {string} A localized status message.
-     */
-    statusText() {
-      if (this.serverConnecting) return this.__('Connecting to server...'); // Message when connecting
-      if (!this.networkOnline) return this.__('No Internet Connection'); // Message when no internet
-      return this.serverOnline ? this.__('Connected to Server') : this.__('Server Offline'); // Messages for server status
+    
+    onNavbarEnter() {
+      this.showNavbar();
     },
-    /**
-     * Returns a short string summarizing the last offline invoice sync results.
-     */
-    syncInfoText() {
-      const { pending, synced, drafted } = this.syncTotals;
-      return `To Sync: ${pending} | Synced: ${synced} | Draft: ${drafted}`;
-    }
-  },
-  created() {
-    // --- LOAD COMPANY INFO FROM FRAPPE BOOT ---
-    // Attempts to get the company name from Frappe's boot data.
-    const bootCompany = frappe?.boot?.user_info?.company;
-    this.company = bootCompany || this.company; // Use boot company or default 'POS Awesome'
-    console.log('Fetched company:', this.company);
-    window.serverOnline = this.serverOnline;
-
-    // If a specific company name is found (not the default), fetch its logo from Frappe.
-    if (this.company !== 'POS Awesome') {
+    
+    onNavbarLeave() {
+      if (!this.isNavbarLocked) {
+        this.clearHideTimer();
+        this.hideTimer = setTimeout(() => {
+          this.hideNavbar();
+        }, 500);
+      }
+    },
+    
+    clearHideTimer() {
+      if (this.hideTimer) {
+        clearTimeout(this.hideTimer);
+        this.hideTimer = null;
+      }
+    },
+    
+    changePage(key) {
+      this.currentPage = key;
+      this.$emit('changePage', key);
+    },
+    
+    go_desk() {
+      frappe.set_route('/');
+      location.reload();
+    },
+    
+    close_shift_dialog() {
+      this.eventBus.emit('open_closing_dialog');
+    },
+    
+    show_message(data) {
+      this.snack = true;
+      this.snackColor = data.color;
+      this.snackText = data.title;
+    },
+    
+    logOut() {
       frappe.call({
-        method: 'frappe.client.get',
-        args: { doctype: 'Company', name: this.company },
-        callback: r => {
-          if (r.message?.company_logo) this.companyImg = r.message.company_logo;
+        method: 'logout',
+        callback: function (r) {
+          if (!r.exc) {
+            frappe.set_route('/login');
+            location.reload();
+          }
         },
-        error: err => console.warn('Company lookup failed', err)
       });
-    }
-
-    // --- EVENT BUS HANDLERS FOR POS INFO/STATE ---
-    // Register event listeners on the global event bus. These listeners react to events
-    // emitted from other parts of the application to update the NavBar's state.
-    this.$nextTick(() => {
-      // Initialize pending invoices count
-      this.updatePendingInvoices();
-      this.syncPendingInvoices();
-      // Listen for changes in pending invoices from other components
-      this.eventBus.on('pending_invoices_changed', this.updatePendingInvoices);
-      this.eventBus.on('show_message', this.showMessage); // Listens for requests to show a snackbar message
-      this.eventBus.on('set_company', data => { // Listens for updates to company details (name, logo)
-        this.company = data.name || this.company;
-        this.companyImg = data.company_logo || this.companyImg;
-      });
-      this.eventBus.on('register_pos_profile', data => { // Listens for the POS profile data
-        this.posProfile = data.pos_profile;
-        const paymentsItem = { text: 'Payments', icon: 'mdi-cash-register' };
-        // Conditionally adds a 'Payments' navigation item if allowed by the POS profile and not already present
-        if (this.posProfile.posa_use_pos_awesome_payments && !this.items.some(i => i.text === 'Payments')) {
-          this.items.push(paymentsItem);
+    },
+    
+    print_last_invoice() {
+      if (!this.last_invoice) return;
+      this.printInvoiceDirect(this.last_invoice);
+    },
+    
+    printInvoiceDirect(invoiceName) {
+      if (!invoiceName) return;
+      
+      const print_format = this.pos_profile.print_format_for_online || this.pos_profile.print_format;
+      const letter_head = this.pos_profile.letter_head || 0;
+      
+      const printFrame = document.createElement('iframe');
+      printFrame.style.display = 'none';
+      printFrame.src = frappe.urllib.get_base_url() +
+        '/printview?doctype=Sales%20Invoice&name=' +
+        invoiceName +
+        '&format=' +
+        print_format +
+        '&no_letterhead=' +
+        letter_head;
+      
+      document.body.appendChild(printFrame);
+      
+      printFrame.onload = function() {
+        setTimeout(() => {
+          printFrame.contentWindow.print();
+          setTimeout(() => {
+            document.body.removeChild(printFrame);
+          }, 100);
+        }, 250);
+      };
+    },
+    
+    loadLastInvoices() {
+      frappe.call({
+        method: 'frappe.client.get_list',
+        args: {
+          doctype: 'Sales Invoice',
+          fields: ['name', 'customer_name', 'grand_total', 'posting_date', 'posting_time', 'currency'],
+          filters: {
+            docstatus: 1,
+            pos_profile: this.pos_profile.name
+          },
+          order_by: 'creation desc',
+          limit: 10
+        },
+        callback: (r) => {
+          if (r.message) {
+            this.lastInvoices = r.message;
+          }
         }
       });
-      this.eventBus.on('set_last_invoice', data => { this.lastInvoiceId = data; }); // Listens for the ID of the last processed invoice
-      this.eventBus.on('freeze', data => { // Listens for requests to display a freeze dialog (e.g., during long operations)
+    },
+    
+    formatDate(date) {
+      if (!date) return '';
+      return new Date(date).toLocaleDateString();
+    },
+    
+    viewInvoice(invoiceName) {
+      const url = frappe.urllib.get_base_url() + '/app/sales-invoice/' + invoiceName;
+      window.open(url, '_blank');
+    },
+    
+    currencySymbol(currency) {
+      const symbols = {
+        'USD': '$',
+        'EUR': '€',
+        'GBP': '£',
+        'SAR': 'ر.س',
+        'AED': 'د.إ',
+        'EGP': 'ج.م',
+        'INR': '₹'
+      };
+      return symbols[currency] || currency + ' ';
+    },
+    
+    formatCurrency(value) {
+      if (!value) return '0.00';
+      return parseFloat(value).toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      });
+    },
+    
+    toggleFullScreen() {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().then(() => {
+          this.isFullscreen = true;
+        }).catch((err) => {
+          console.warn(`Error attempting to enable full-screen mode: ${err.message}`);
+        });
+      } else {
+        document.exitFullscreen().then(() => {
+          this.isFullscreen = false;
+        });
+      }
+    },
+    
+    toggleNavbarLock() {
+      this.isNavbarLocked = !this.isNavbarLocked;
+      localStorage.setItem('navbar_locked', this.isNavbarLocked.toString());
+      
+      if (this.isNavbarLocked) {
+        this.navbarVisible = true;
+        document.body.style.paddingTop = '56px';
+      } else {
+        document.body.style.paddingTop = '0';
+        setTimeout(() => {
+          this.navbarVisible = false;
+        }, 300);
+      }
+    },
+    
+    loadNavbarState() {
+      const savedState = localStorage.getItem('navbar_locked');
+      if (savedState !== null) {
+        this.isNavbarLocked = savedState === 'true';
+        this.navbarVisible = this.isNavbarLocked;
+        
+        if (this.isNavbarLocked) {
+          document.body.style.paddingTop = '56px';
+        }
+      }
+    },
+    
+    detectRTL() {
+      const htmlDir = document.documentElement.dir;
+      const lang = document.documentElement.lang;
+      this.isRTL = htmlDir === 'rtl' || ['ar', 'he', 'fa', 'ur'].includes(lang.substring(0, 2));
+    },
+
+    __: window.__ || ((str) => str),
+  },
+  
+  created() {
+    this.loadNavbarState();
+    this.detectRTL();
+    
+    this.$nextTick(() => {
+      this.eventBus.on('show_message', (data) => this.show_message(data));
+      this.eventBus.on('set_company', (data) => {
+        this.company = data.name;
+        this.company_img = data.company_logo || this.company_img;
+      });
+      this.eventBus.on('register_pos_profile', (data) => {
+        this.pos_profile = data.pos_profile;
+        this.loadLastInvoices();
+      });
+      this.eventBus.on('set_last_invoice', (data) => {
+        this.last_invoice = data;
+        this.loadLastInvoices();
+      });
+      this.eventBus.on('freeze', (data) => {
         this.freeze = true;
         this.freezeTitle = data.title;
         this.freezeMsg = data.msg;
       });
-      this.eventBus.on('unfreeze', () => { // Listens for requests to hide the freeze dialog
+      this.eventBus.on('unfreeze', () => {
         this.freeze = false;
         this.freezeTitle = '';
         this.freezeMsg = '';
       });
     });
   },
+  
   mounted() {
-    // --- NETWORK ONLINE/OFFLINE EVENTS ---
-    // Attach event listeners to the window object to detect changes in the browser's network status.
-    window.addEventListener('online', this.handleOnline); // Fires when the browser regains network connectivity
-    window.addEventListener('offline', this.handleOffline); // Fires when the browser loses network connectivity
-
-    // --- SOCKET CONNECTION FOR SERVER STATUS ---
-    // Initiates the WebSocket connection to monitor server health.
-    this.initSocketConnection();
+    const observer = new MutationObserver(() => {
+      this.detectRTL();
+    });
+    
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['dir', 'lang']
+    });
   },
-  beforeDestroy() {
-    // --- REMOVE NETWORK LISTENERS ---
-    // Crucial cleanup: Remove event listeners from the window to prevent memory leaks
-    // when the component is destroyed (e.g., navigating away from the page).
-    window.removeEventListener('online', this.handleOnline);
-    window.removeEventListener('offline', this.handleOffline);
-    // Remove event bus listener for pending invoices
-    this.eventBus.off('pending_invoices_changed', this.updatePendingInvoices);
-    // --- CLOSE SOCKET ---
-    // Disconnect and clean up Socket.IO listeners to ensure proper resource management.
-    if (this.socket) {
-      this.socket.off('connect'); // Remove 'connect' listener
-      this.socket.off('disconnect'); // Remove 'disconnect' listener
-      this.socket.off('connect_error'); // Remove 'connect_error' listener
-      this.socket.close(); // Close the Socket.IO connection
-      this.socket = null; // Clear the socket instance to prevent stale references
-    }
+  
+  beforeUnmount() {
+    this.clearHideTimer();
+    document.body.style.paddingTop = '0';
   },
-  methods: {
-
-    /**
-     * Initializes a Socket.IO connection, adapting the URL based on the environment:
-     * - Development: localhost / 127.0.0.1
-     * - Production: domain names (not IP addresses)
-     * - Fallback: IP addresses (e.g., 192.168.x.x), default to port 9000
-     */
-
-    initSocketConnection() {
-      this.serverConnecting = true;
-      this.serverOnline = false;
-
-      try {
-        const { protocol, hostname: host, port: currentPort } = window.location;
-
-        /**
-         * Checks if the host is a local development address.
-         */
-        const isLocalhost = () => ['localhost', '127.0.0.1'].includes(host);
-
-        /**
-         * Checks if the host is a valid IPv4 address.
-         */
-        const isIpAddress = (hostname) => /^(?:\d{1,3}\.){3}\d{1,3}$/.test(hostname);
-
-        /**
-         * Determine the environment:
-         * - Development: localhost or 127.0.0.1
-         * - Production: not an IP address
-         * - Fallback: IP address (not localhost)
-         */
-        const isDevelopment = isLocalhost();
-        const isProduction = !isDevelopment && !isIpAddress(host);
-        const isFallback = !isDevelopment && isIpAddress(host);
-
-        /**
-         * Returns the appropriate Socket.IO URL based on environment.
-         */
-        const getSocketUrl = () => {
-          if (isProduction) {
-            // Production: use current port or default for protocol
-            const port = currentPort || (protocol === 'https:' ? '443' : '80');
-            const url = `${protocol}//${host}:${port}`;
-            console.log('Production environment detected, using:', url);
-            return url;
-          }
-
-          if (isDevelopment) {
-            // Development: use dev socket port (9000 or Frappe-configured)
-            const socketPort = window.frappe?.boot?.socketio_port || '9000';
-            const url = `${protocol}//${host}:${socketPort}`;
-            console.log('Development environment detected, using:', url);
-            return url;
-          }
-
-          if (isFallback) {
-            // Fallback: IP addresses (e.g., 192.168.x.x), default to port 9000
-            const fallbackUrl = `${protocol}//${host}:9000`;
-            console.log('IP-based host detected, using fallback:', fallbackUrl);
-            return fallbackUrl;
-          }
-
-          // As a final fallback, use port 9000
-          const defaultFallbackUrl = `${protocol}//${host}:9000`;
-          console.log('Unknown environment, using fallback:', defaultFallbackUrl);
-          return defaultFallbackUrl;
-        };
-
-        // Create the Socket.IO client with connection options
-        this.socket = io(getSocketUrl(), {
-          path: '/socket.io',
-          transports: ['websocket', 'polling'],
-          reconnection: true,
-          reconnectionAttempts: Infinity,
-          reconnectionDelay: 1000,
-          reconnectionDelayMax: 5000,
-          timeout: 20000,
-          forceNew: true
-        });
-
-        /**
-         * Event: Successfully connected
-         */
-        this.socket.on('connect', () => {
-          this.serverOnline = true;
-          window.serverOnline = true;
-          this.serverConnecting = false;
-          this.offlineMessageShown = false; // reset offline warning flag
-          console.log('Socket.IO: Connected to server');
-          this.eventBus.emit('server-online');
-        });
-
-        /**
-         * Event: Disconnected from server
-         */
-        this.socket.on('disconnect', (reason) => {
-          this.serverOnline = false;
-          window.serverOnline = false;
-          this.serverConnecting = false;
-          console.warn('Socket.IO: Disconnected from server. Reason:', reason);
-
-          this.eventBus.emit('server-offline');
-
-          if (!this.offlineMessageShown) {
-            this.showMessage({
-              color: 'error',
-              title: this.__('Server connection lost. Please check your internet connection.')
-            });
-            this.offlineMessageShown = true;
-          }
-        });
-
-        /**
-         * Event: Connection error
-         */
-        this.socket.on('connect_error', (error) => {
-          this.serverOnline = false;
-          window.serverOnline = false;
-          this.serverConnecting = false;
-          console.error('Socket.IO: Connection error:', error.message);
-          this.eventBus.emit('server-offline');
-
-          if (!this.offlineMessageShown) {
-            this.showMessage({
-              color: 'error',
-              title: this.__('Unable to connect to server. Please try again later.')
-            });
-            this.offlineMessageShown = true;
-          }
-        });
-      } catch (err) {
-        this.serverOnline = false;
-        window.serverOnline = false;
-        this.serverConnecting = false;
-        console.error('Failed to initialize Socket.IO connection:', err);
-
-        this.showMessage({
-          color: 'error',
-          title: this.__('Failed to initialize server connection.')
-        });
-      }
-    },
-
-    // --- SIGNAL ONLINE/OFFLINE EVENTS ---
-    /**
-     * Handles the browser's native 'online' event.
-     * When the browser regains network connectivity, it updates the `networkOnline` status
-     * and attempts to reconnect to the server if not already connected.
-     */
-    handleOnline() {
-      this.networkOnline = true; // Browser is now online
-      console.log('Browser is online');
-      this.offlineMessageShown = false; // allow future offline warnings
-      this.eventBus.emit('network-online');
-      this.syncPendingInvoices();
-      window.serverOnline = this.serverOnline;
-      // If the server is not online and not currently connecting, and a socket instance exists,
-      // explicitly try to connect the socket. This helps in re-establishing server connection
-      // immediately after internet recovery.
-      if (!this.serverOnline && !this.serverConnecting && this.socket) {
-        this.socket.connect();
-      } else if (!this.socket) {
-        // If for some reason the socket instance is null, re-initialize it.
-        this.initSocketConnection();
-      }
-    },
-    /**
-     * Handles the browser's native 'offline' event.
-     * When the browser loses network connectivity, it updates all relevant status flags
-     * and disconnects the Socket.IO connection as the server will be unreachable.
-     */
-    handleOffline() {
-      this.networkOnline = false; // Browser is now offline
-      this.serverOnline = false; // Server is considered unreachable if there's no internet
-      window.serverOnline = false;
-      this.serverConnecting = false; // Stop any ongoing connection attempts
-      console.log('Browser is offline');
-      this.eventBus.emit('network-offline');
-      // Disconnect the socket gracefully if the network goes offline.
-      if (this.socket) {
-        this.socket.disconnect();
-      }
-    },
-    // --- NAVIGATION AND POS ACTIONS ---
-    /**
-     * Toggles the visibility and mini-variant state of the side navigation drawer.
-     */
-    handleNavClick() {
-      this.drawer = true; // Open the drawer
-      this.mini = false; // Ensure it's in expanded mode
-    },
-    /**
-     * Handles the mouse leaving the navigation drawer area.
-     * If the drawer is open, it sets a timeout to collapse it back to mini-variant.
-     */
-    handleMouseLeave() {
-      if (!this.drawer) return; // Do nothing if the drawer is already closed
-      clearTimeout(this._closeTimeout); // Clear any previous timeout to prevent conflicts
-      this._closeTimeout = setTimeout(() => {
-        this.drawer = false; // Close the drawer
-        this.mini = true; // Set it to mini-variant
-      }, 250); // Delay for 250 milliseconds
-    },
-    /**
-     * Emits a 'changePage' event to the parent component, signaling a request to navigate to a new page.
-     * @param {string} key - The identifier for the page to navigate to (e.g., 'POS', 'Payments').
-     */
-    changePage(key) {
-      this.$emit('changePage', key);
-    },
-    /**
-     * Navigates the user back to the main Frappe desk view and reloads the page.
-     */
-    goDesk() {
-      frappe.set_route('/'); // Set Frappe route to home
-      location.reload(); // Reload the entire page
-    },
-    /**
-     * Emits an 'open_closing_dialog' event to the event bus, typically to trigger
-     * the display of a dialog for closing the POS shift.
-     */
-    openCloseShift() {
-      this.eventBus.emit('open_closing_dialog');
-    },
-    /**
-     * Prints the last generated sales invoice.
-     * It constructs a print URL using the invoice ID and POS profile settings,
-     * then opens it in a new window and triggers the print command.
-     */
-    printLastInvoice() {
-      if (!this.lastInvoiceId) return; // Exit if no invoice ID is available
-      // Determine the print format to use
-      const pf = this.posProfile.print_format_for_online || this.posProfile.print_format;
-      // Determine if letterhead should be excluded
-      const noLetterHead = this.posProfile.letter_head || 0;
-      // Construct the full print URL for the Sales Invoice
-      const url = `${frappe.urllib.get_base_url()}/printview?doctype=Sales%20Invoice&name=${this.lastInvoiceId}` +
-        `&trigger_print=1&format=${pf}&no_letterhead=${noLetterHead}`;
-      const win = window.open(url, '_blank'); // Open the URL in a new browser tab/window
-      // Add a one-time event listener to the new window to trigger print once it's loaded
-      win.addEventListener('load', () => win.print(), { once: true });
-    },
-    /**
-     * Fetches and displays information about all installed applications from the Frappe backend.
-     * It presents this information in a formatted table within a Frappe message dialog.
-     */
-    goAbout() {
-      frappe.call({
-        method: 'posawesome.posawesome.api.posapp.get_app_info', // API method to call
-        callback: r => {
-          if (Array.isArray(r.message.apps)) {
-            // Build an HTML table string dynamically from the fetched app data
-            let html = `
-              <table style="width:100%; border-collapse:collapse; text-align:left;">
-                <thead>
-                  <tr><th style="padding:8px;">${__('Application')}</th>
-                      <th style="padding:8px;">${__('Version')}</th></tr>
-                </thead><tbody>
-            `;
-            r.message.apps.forEach(app => {
-              html += `
-                <tr>
-                  <td style="padding:8px;"><strong>${app.app_name}</strong></td>
-                  <td style="padding:8px;">${app.installed_version}</td>
-                </tr>
-              `;
-            });
-            html += `</tbody></table>`;
-
-            // Display the generated HTML table in a Frappe message print dialog
-            frappe.msgprint({
-              title: __('Installed Applications'),
-              indicator: 'blue', // Blue indicator for informational message
-              message: html
-            });
-          }
-        },
-        error: () => frappe.msgprint({ // Error callback if API call fails
-          title: __('Error'),
-          indicator: 'red', // Red indicator for error message
-          message: __('Failed to retrieve app info')
-        })
-      });
-    },
-    /**
-     * Logs out the current user from the Frappe system.
-     * Upon successful logout, it redirects the user to the Frappe home page and reloads.
-     */
-    logOut() {
-      frappe.call({
-        method: 'logout', // Frappe API method for logout
-        callback: r => {
-          if (!r.exc) { // If no exception occurred during logout
-            frappe.set_route('/app/home'); // Set route to home
-            location.reload(); // Reload the page to complete logout process
-          }
-        }
-      });
-    },
-
-    async syncPendingInvoices() {
-      const pending = getPendingOfflineInvoiceCount();
-      if (pending) {
-        this.showMessage({
-          title: `${pending} invoice${pending > 1 ? 's' : ''} pending for sync`,
-          color: 'warning'
-        });
-      }
-      const result = await syncOfflineInvoices();
-      if (result && (result.synced || result.drafted)) {
-        if (result.synced) {
-          this.showMessage({
-            title: `${result.synced} offline invoice${result.synced > 1 ? 's' : ''} synced`,
-            color: 'success'
-          });
-        }
-        if (result.drafted) {
-          this.showMessage({
-            title: `${result.drafted} offline invoice${result.drafted > 1 ? 's' : ''} saved as draft`,
-            color: 'warning'
-          });
-        }
-      }
-      if (result) {
-        this.syncTotals = { ...result };
-      }
-      this.updatePendingInvoices();
-      this.eventBus.emit('pending_invoices_changed', this.pendingInvoices);
-    },
-    /**
-     * Reads the current number of invoices stored offline and updates the badge
-     * counter in the navigation bar.
-     */
-    updatePendingInvoices() {
-      this.pendingInvoices = getPendingOfflineInvoiceCount();
-    },
-    /**
-     * Displays a snackbar message at the top right of the screen.
-     * @param {object} data - An object containing `color` (for snackbar styling) and `title` (the message text).
-     */
-    showMessage(data) {
-      this.snack = true; // Make snackbar visible
-      this.snackColor = data.color; // Set snackbar color
-      this.snackText = data.title; // Set snackbar text
-    },
-    /**
-     * A dummy translation method. In a real Frappe environment, `frappe.__` or `window.__`
-     * would be used for proper internationalization. This is a placeholder for demonstration.
-     * @param {string} text - The text string to be translated.
-     * @returns {string} The original text (as this is a dummy implementation).
-     */
-    __(text) {
-      // In a real Frappe environment, you would use frappe.__ or window.__
-      // For this example, we'll return the text as is.
-      return text;
-    }
-  }
 };
 </script>
 
 <style scoped>
-/* --- App Bar and Drawer Styling --- */
-/* Styles related to the main application bar and the side navigation drawer. */
-
-/* Adds a subtle bottom border to the app bar for visual separation. */
-.border-bottom {
-  border-bottom: 1px solid #e0e0e0;
+.navbar-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  transform: translateY(0);
+  opacity: 1;
 }
 
-/* Sets a secondary text color, typically a lighter shade of black. */
-.text-secondary {
-  color: rgba(0, 0, 0, 0.6) !important;
+.navbar-container.navbar-hidden {
+  transform: translateY(-85%);
+  opacity: 0.9;
 }
 
-/* Custom styling for the navigation drawer, including background and transition effects. */
-.drawer-custom {
+.navbar-container.navbar-locked {
+  position: relative;
+  z-index: auto;
+  transform: translateY(0) !important;
+  opacity: 1 !important;
+}
+
+.navbar-toolbar {
+  backdrop-filter: blur(10px);
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.navbar-hover-zone {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 20px;
+  z-index: 49;
+  background: transparent;
+  cursor: s-resize;
+}
+
+.invoice-dialog {
+  border-radius: 8px !important;
+}
+
+.invoice-header {
+  background-color: #f5f5f5;
+  padding: 16px 24px;
+}
+
+.invoice-table {
+  background: white;
+}
+
+.invoice-table thead {
   background-color: #fafafa;
-  transition: all 0.3s ease-out;
 }
 
-/* Styling for the header section of the expanded navigation drawer. */
-.drawer-header {
+.invoice-table th {
+  font-weight: 600 !important;
+  color: #666 !important;
+  font-size: 0.875rem !important;
+  padding: 12px 16px !important;
+  border-bottom: 2px solid #e0e0e0 !important;
+}
+
+.invoice-row {
+  transition: background-color 0.2s ease;
+}
+
+.invoice-row:hover {
+  background-color: #f9f9f9;
+}
+
+.invoice-row td {
+  padding: 10px 16px !important;
+  border-bottom: 1px solid #f0f0f0 !important;
+  font-size: 0.875rem;
+}
+
+.empty-state {
+  min-height: 300px;
   display: flex;
+  flex-direction: column;
   align-items: center;
-  height: 64px;
-  padding: 0 16px;
-}
-
-/* Styling for the header section of the mini (collapsed) navigation drawer. */
-.drawer-header-mini {
-  display: flex;
   justify-content: center;
-  align-items: center;
-  height: 64px;
+  background-color: #fafafa;
 }
 
-/* Styling for the company name text within the drawer header. */
-.drawer-company {
-  margin-left: 12px;
-  flex: 1;
-  font-weight: 500;
-  font-size: 1rem;
-  color: #424242;
+body {
+  transition: padding-top 0.3s ease;
 }
 
-/* Styling for icons within the navigation drawer list items. */
-.drawer-icon {
-  font-size: 24px;
-  color: #1976d2;
+[dir="rtl"] .invoice-table {
+  direction: rtl;
 }
 
-/* Styling for the title text of navigation drawer list items. */
-.drawer-item-title {
-  margin-left: 8px;
-  font-weight: 500;
-  color: #424242;
+[dir="rtl"] .invoice-header {
+  direction: rtl;
 }
 
-/* Hover effect for all list items in the navigation drawer. */
-.v-list-item:hover {
-  background-color: rgba(25, 118, 210, 0.1) !important;
-}
-
-/* Styling for the actively selected list item in the navigation drawer. */
-.active-item {
-  background-color: rgba(25, 118, 210, 0.2) !important;
-}
-
-/* --- User Menu Styling --- */
-/* Styles specific to the user actions dropdown menu. */
-
-/* Styling for the main "Menu" button that activates the dropdown. */
-.user-menu-btn {
-  text-transform: none;
-  padding: 4px 12px;
-  font-weight: 500;
-}
-
-/* Styling for the card that contains the dropdown menu list. */
-.user-menu-card {
-  border-radius: 8px;
-  overflow: hidden;
-}
-
-/* Padding for the list within the user menu card. */
-.user-menu-list {
-  padding-top: 8px;
-  padding-bottom: 8px;
-}
-
-/* Padding for individual list items within the user menu. */
-.user-menu-item {
-  padding: 10px 16px;
-}
-
-/* Minimum width for icons within user menu list items to ensure alignment. */
-.user-menu-item .v-list-item-icon {
-  min-width: 36px;
-}
-
-/* Margin for dividers within the user menu list. */
-.user-menu-card .v-divider {
-  margin: 8px 0;
+@media (max-width: 768px) {
+  .v-toolbar-title {
+    font-size: 0.9rem;
+  }
+  
+  .v-chip {
+    display: none !important;
+  }
+  
+  .navbar-toolbar .v-btn span {
+    display: none;
+  }
+  
+  .navbar-toolbar .v-btn {
+    min-width: 40px !important;
+    width: 40px !important;
+  }
+  
+  .invoice-dialog {
+    margin: 8px;
+  }
 }
 </style>

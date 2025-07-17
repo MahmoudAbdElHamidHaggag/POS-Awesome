@@ -2,7 +2,7 @@
   <!-- ? Disable dropdown if either readonly or loadingCustomers is true -->
   <div class="customer-input-wrapper">
     <v-autocomplete ref="customerDropdown" class="customer-autocomplete sleek-field" density="compact" clearable
-      variant="solo" color="primary" :label="frappe._('Customer')" v-model="internalCustomer" :items="customers"
+      variant="solo" color="primary" v-model="internalCustomer" :items="customers"
       item-title="customer_name" item-value="name" bg-color="white" :no-data-text="__('Customers not found')"
       hide-details :customFilter="customFilter" :disabled="readonly || loadingCustomers"
       :menu-props="{ closeOnContentClick: false }" @update:menu="onCustomerMenuToggle"
@@ -62,8 +62,7 @@
 .customer-input-wrapper {
   width: 100%;
   max-width: 100%;
-  padding-right: 1.5rem;
-  /* Elegant space at the right edge */
+  padding-right: 0;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -72,30 +71,218 @@
 .customer-autocomplete {
   width: 100%;
   box-sizing: border-box;
-  border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-  transition: box-shadow 0.3s ease;
-  background-color: #fff;
+  font-size: 0.85rem;
 }
 
-.customer-autocomplete:hover {
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+/* Field Styling */
+.customer-autocomplete :deep(.v-field) {
+  min-height: 36px !important;
+  background: white !important;
+  border-radius: 6px !important;
+  border: 1px solid #e2e8f0;
+  transition: all 0.2s ease;
+  box-shadow: none !important;
 }
 
+.customer-autocomplete:hover :deep(.v-field) {
+  border-color: #cbd5e1;
+}
+
+.customer-autocomplete :deep(.v-field--focused) {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+}
+
+.customer-autocomplete :deep(.v-field__input) {
+  padding: 0 12px !important;
+  font-size: 0.85rem !important;
+  min-height: 36px !important;
+  color: #1e293b;
+}
+
+.customer-autocomplete :deep(.v-field__prepend-inner),
+.customer-autocomplete :deep(.v-field__append-inner) {
+  padding-top: 0 !important;
+}
+
+.customer-autocomplete :deep(.v-label) {
+  display: none !important;
+}
+
+.customer-autocomplete :deep(.v-field--focused .v-label) {
+  color: #3b82f6;
+}
+
+/* Icon Button Styling */
 .icon-button {
   cursor: pointer;
-  font-size: 20px;
-  opacity: 0.7;
+  font-size: 18px !important;
+  opacity: 0.6;
   transition: all 0.2s ease;
+  color: #64748b;
 }
 
 .icon-button:hover {
   opacity: 1;
-  color: var(--v-theme-primary);
+  color: #3b82f6 !important;
+  transform: scale(1.1);
+}
+
+/* Dropdown Item Styling */
+.customer-autocomplete :deep(.v-list-item) {
+  min-height: auto !important;
+  padding: 10px 14px !important;
+  border-bottom: 1px solid #f1f5f9;
+  transition: all 0.2s ease;
+}
+
+.customer-autocomplete :deep(.v-list-item:hover) {
+  background: #f8fafc !important;
+}
+
+.customer-autocomplete :deep(.v-list-item:last-child) {
+  border-bottom: none;
+}
+
+.customer-autocomplete :deep(.v-list-item-title) {
+  font-size: 0.9rem !important;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.customer-autocomplete :deep(.v-list-item-subtitle) {
+  font-size: 0.75rem !important;
+  color: #64748b;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
+.customer-autocomplete :deep(.v-list-item-subtitle div) {
+  padding: 2px 0;
+}
+
+/* Menu Styling */
+.customer-autocomplete :deep(.v-menu__content) {
+  border-radius: 8px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1) !important;
+  border: 1px solid #e2e8f0;
+  margin-top: 4px;
+  max-height: 400px !important;
+}
+
+.customer-autocomplete :deep(.v-list) {
+  padding: 4px !important;
+  background: white;
+}
+
+/* Clear Button */
+.customer-autocomplete :deep(.v-field__clearable .v-icon) {
+  font-size: 18px !important;
+  opacity: 0.5;
+  color: #64748b;
+}
+
+.customer-autocomplete :deep(.v-field__clearable .v-icon:hover) {
+  opacity: 1;
+  color: #ef4444;
+}
+
+/* Loading State */
+.customer-autocomplete :deep(.v-field--disabled) {
+  opacity: 0.6;
+}
+
+.customer-autocomplete :deep(.v-progress-linear) {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+}
+
+/* RTL Support */
+[dir="rtl"] .customer-input-wrapper {
+  padding-right: 0;
+  padding-left: 0;
+}
+
+[dir="rtl"] .customer-autocomplete :deep(.v-field__prepend-inner) {
+  order: 2;
+}
+
+[dir="rtl"] .customer-autocomplete :deep(.v-field__append-inner) {
+  order: -1;
+}
+
+[dir="rtl"] .customer-autocomplete :deep(.v-field__input) {
+  text-align: right;
+}
+
+[dir="rtl"] .customer-autocomplete :deep(.v-list-item-subtitle div) {
+  text-align: right;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .customer-autocomplete :deep(.v-list-item) {
+    padding: 8px 10px !important;
+  }
+  
+  .customer-autocomplete :deep(.v-list-item-title) {
+    font-size: 0.85rem !important;
+  }
+  
+  .customer-autocomplete :deep(.v-list-item-subtitle) {
+    font-size: 0.7rem !important;
+  }
+  
+  .icon-button {
+    font-size: 16px !important;
+  }
+  
+  .customer-autocomplete :deep(.v-field__input) {
+    font-size: 0.8rem !important;
+  }
+}
+
+/* Focus States for Accessibility */
+.icon-button:focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.customer-autocomplete:focus-visible :deep(.v-field) {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.customer-autocomplete :deep(.v-list-item) {
+  animation: fadeIn 0.2s ease;
+}
+
+/* Tooltip Styling */
+:deep(.v-tooltip .v-overlay__content) {
+  background: #1e293b !important;
+  color: white !important;
+  font-size: 0.75rem !important;
+  padding: 4px 8px !important;
+  border-radius: 4px !important;
 }
 </style>
-
-
 
 <script>
 import UpdateCustomer from './UpdateCustomer.vue';
@@ -208,10 +395,6 @@ export default {
           }
           vm.loadingCustomers = false; // ? Stop loading
         },
-        error: function (err) {
-          console.error('Failed to fetch customers:', err);
-          vm.loadingCustomers = false; // Ensure field is re-enabled on failure
-        }
       });
     },
 

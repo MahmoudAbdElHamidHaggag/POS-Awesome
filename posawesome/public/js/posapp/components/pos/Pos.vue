@@ -9,20 +9,22 @@
     <Variants></Variants>
     <OpeningDialog v-if="dialog" :dialog="dialog"></OpeningDialog>
     <v-row v-show="!dialog">
-      <v-col v-show="!payment && !offers && !coupons" xl="5" lg="5" md="5" sm="5" cols="12" class="pos pr-0">
+      <!-- منطقة الأصناف - 70% من المساحة -->
+      <v-col v-show="!payment && !offers && !coupons" xl="8" lg="8" md="8" sm="8" cols="12" class="pos pr-0">
         <ItemsSelector></ItemsSelector>
       </v-col>
-      <v-col v-show="offers" xl="5" lg="5" md="5" sm="5" cols="12" class="pos pr-0">
+      <v-col v-show="offers" xl="8" lg="8" md="8" sm="8" cols="12" class="pos pr-0">
         <PosOffers></PosOffers>
       </v-col>
-      <v-col v-show="coupons" xl="5" lg="5" md="5" sm="5" cols="12" class="pos pr-0">
+      <v-col v-show="coupons" xl="8" lg="8" md="8" sm="8" cols="12" class="pos pr-0">
         <PosCoupons></PosCoupons>
       </v-col>
-      <v-col v-show="payment" xl="5" lg="5" md="5" sm="5" cols="12" class="pos pr-0">
+      <v-col v-show="payment" xl="8" lg="8" md="8" sm="8" cols="12" class="pos pr-0">
         <Payments></Payments>
       </v-col>
 
-      <v-col xl="7" lg="7" md="7" sm="7" cols="12" class="pos">
+      <!-- منطقة سلة المشتريات - 30% من المساحة -->
+      <v-col xl="4" lg="4" md="4" sm="4" cols="12" class="pos">
         <Invoice></Invoice>
       </v-col>
     </v-row>
@@ -30,7 +32,6 @@
 </template>
 
 <script>
-
 import ItemsSelector from './ItemsSelector.vue';
 import Invoice from './Invoice.vue';
 import OpeningDialog from './OpeningDialog.vue';
@@ -64,7 +65,6 @@ export default {
     Payments,
     Drafts,
     ClosingDialog,
-
     Returns,
     PosOffers,
     PosCoupons,
@@ -87,51 +87,10 @@ export default {
             this.get_offers(this.pos_profile.name);
             this.eventBus.emit('register_pos_profile', r.message);
             this.eventBus.emit('set_company', r.message.company);
-            frappe.realtime.emit('pos_profile_registered');
             console.info('LoadPosProfile');
-            try {
-              localStorage.setItem('pos_opening_storage', JSON.stringify(r.message));
-            } catch (e) {
-              console.error('Failed to cache opening data', e);
-            }
           } else {
-            const cached = localStorage.getItem('pos_opening_storage');
-            if (cached) {
-              try {
-                const data = JSON.parse(cached);
-                this.pos_profile = data.pos_profile;
-                this.pos_opening_shift = data.pos_opening_shift;
-                this.get_offers(this.pos_profile.name);
-                this.eventBus.emit('register_pos_profile', data);
-                this.eventBus.emit('set_company', data.company);
-                frappe.realtime.emit('pos_profile_registered');
-                console.info('LoadPosProfile (cached)');
-                return;
-              } catch (e) {
-                console.error('Failed to parse cached opening data', e);
-              }
-            }
             this.create_opening_voucher();
           }
-        })
-        .catch(() => {
-          const cached = localStorage.getItem('pos_opening_storage');
-          if (cached) {
-            try {
-              const data = JSON.parse(cached);
-              this.pos_profile = data.pos_profile;
-              this.pos_opening_shift = data.pos_opening_shift;
-              this.get_offers(this.pos_profile.name);
-              this.eventBus.emit('register_pos_profile', data);
-              this.eventBus.emit('set_company', data.company);
-              frappe.realtime.emit('pos_profile_registered');
-              console.info('LoadPosProfile (cached)');
-              return;
-            } catch (e) {
-              console.error('Failed to parse cached opening data', e);
-            }
-          }
-          this.create_opening_voucher();
         });
     },
     create_opening_voucher() {
@@ -229,16 +188,22 @@ export default {
       });
     });
   },
-  beforeUnmount() {
-    this.eventBus.off('close_opening_dialog');
-    this.eventBus.off('register_pos_data');
-    this.eventBus.off('LoadPosProfile');
-    this.eventBus.off('show_offers');
-    this.eventBus.off('show_coupons');
-    this.eventBus.off('open_closing_dialog');
-    this.eventBus.off('submit_closing_pos');
-  },
+  // استبدل beforeUnmount في Pos.vue بهذا:
+beforeUnmount() {
+  this.eventBus.$off('close_opening_dialog');
+  this.eventBus.$off('register_pos_data');
+  this.eventBus.$off('LoadPosProfile');
+  this.eventBus.$off('show_offers');
+  this.eventBus.$off('show_coupons');
+  this.eventBus.$off('open_closing_dialog');
+  this.eventBus.$off('submit_closing_pos');
+},
 };
 </script>
 
-<style scoped></style>
+<style scoped>
+/* يمكنك إضافة أي تخصيصات CSS إضافية هنا */
+.pos {
+  height: 100vh; /* لضمان الاستفادة من كامل ارتفاع الشاشة */
+}
+</style>

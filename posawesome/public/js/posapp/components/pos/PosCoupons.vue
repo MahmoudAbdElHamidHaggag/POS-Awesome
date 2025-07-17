@@ -1,44 +1,156 @@
 <template>
-  <div>
-    <v-card class="selection mx-auto bg-grey-lighten-5" style="max-height: 80vh; height: 80vh">
-      <v-card-title>
-        <v-row no-gutters align="center" justify="center">
-          <v-col cols="6">
-            <span class="text-h6 text-primary">{{ __('Coupons') }}</span>
+  <div class="pa-4">
+    <v-card class="mx-auto elevation-1 rounded-lg" style="max-height: 85vh">
+      <!-- Header Section -->
+      <v-card-title class="bg-grey-lighten-3 pa-4">
+        <v-row no-gutters align="center">
+          <v-col cols="12" sm="4">
+            <div class="d-flex align-center">
+              <v-icon class="mr-3" color="grey-darken-2" size="24">mdi-ticket-percent</v-icon>
+              <span class="text-h6 text-grey-darken-3">{{ __('Coupons') }}</span>
+            </div>
           </v-col>
-          <v-col cols="4">
-            <v-text-field density="compact" variant="outlined" color="primary" :label="frappe._('Coupon')"
-              bg-color="white" hide-details v-model="new_coupon" class="mr-4"></v-text-field>
-          </v-col>
-          <v-col cols="2">
-            <v-btn class="pa-1" color="success" theme="dark" @click="add_coupon(new_coupon)">{{ __('add') }}</v-btn>
+          <v-col cols="12" sm="8">
+            <v-row no-gutters align="center">
+              <v-col cols="8" sm="9">
+                <v-text-field 
+                  density="compact" 
+                  variant="outlined" 
+                  flat
+                  :label="__('Enter Coupon Code')"
+                  bg-color="white" 
+                  hide-details 
+                  v-model="new_coupon" 
+                  class="mr-2"
+                  prepend-inner-icon="mdi-barcode-scan"
+                  @keyup.enter="add_coupon(new_coupon)"
+                  clearable>
+                </v-text-field>
+              </v-col>
+              <v-col cols="4" sm="3">
+                <v-btn 
+                  block
+                  color="primary" 
+                  variant="flat"
+                  @click="add_coupon(new_coupon)"
+                  :disabled="!new_coupon">
+                  <v-icon size="small">mdi-plus</v-icon>
+                  {{ __('Add') }}
+                </v-btn>
+              </v-col>
+            </v-row>
           </v-col>
         </v-row>
       </v-card-title>
-      <div class="my-0 py-0 overflow-y-auto" style="max-height: 75vh" @mouseover="style = 'cursor: pointer'">
-        <v-data-table :headers="items_headers" :items="posa_coupons" :single-expand="singleExpand"
-          v-model:expanded="expanded" item-key="coupon" class="elevation-1" :items-per-page="itemsPerPage"
-          hide-default-footer>
-          <template v-slot:item.applied="{ item }">
-            <v-checkbox-btn v-model="item.applied" disabled></v-checkbox-btn>
-          </template>
-        </v-data-table>
-      </div>
-    </v-card>
 
-    <v-card flat style="max-height: 11vh; height: 11vh" class="cards mb-0 mt-3 py-0">
-      <v-row align="start" no-gutters>
-        <v-col cols="12">
-          <v-btn block class="pa-1" size="large" color="warning" theme="dark" @click="back_to_invoice">{{ __('Back')
-            }}</v-btn>
-        </v-col>
-      </v-row>
+      <v-divider></v-divider>
+
+      <!-- Statistics Bar -->
+      <v-card-text class="pa-0">
+        <div class="pa-3 bg-grey-lighten-4">
+          <v-row no-gutters align="center">
+            <v-col cols="6">
+              <div class="d-flex align-center">
+                <v-icon class="mr-2" size="small" color="grey-darken-1">mdi-ticket-outline</v-icon>
+                <span class="text-body-2 text-grey-darken-2">{{ __('Total Coupons') }}: <strong>{{ couponsCount }}</strong></span>
+              </div>
+            </v-col>
+            <v-col cols="6">
+              <div class="d-flex align-center justify-end">
+                <v-icon class="mr-2" size="small" color="teal-darken-1">mdi-check-circle</v-icon>
+                <span class="text-body-2 text-grey-darken-2">{{ __('Applied') }}: <strong class="text-teal-darken-1">{{ appliedCouponsCount }}</strong></span>
+              </div>
+            </v-col>
+          </v-row>
+        </div>
+      </v-card-text>
+
+      <!-- Coupons Table -->
+      <v-card-text class="pa-0" style="height: calc(85vh - 220px); overflow-y: auto;">
+        <v-container fluid class="pa-0">
+          <v-row v-if="posa_coupons.length === 0" class="ma-0">
+            <v-col cols="12" class="text-center py-12">
+              <v-icon size="64" color="grey-lighten-1">mdi-ticket-percent-outline</v-icon>
+              <p class="text-h6 text-grey-darken-1 mt-4">{{ __('No coupons added yet') }}</p>
+              <p class="text-body-2 text-grey">{{ __('Enter a coupon code above to get started') }}</p>
+            </v-col>
+          </v-row>
+
+          <v-row v-else class="ma-0">
+            <v-col cols="12" class="pa-3">
+              <v-card 
+                v-for="(coupon, index) in posa_coupons" 
+                :key="coupon.coupon"
+                class="mb-2 coupon-card"
+                :class="{ 'applied-coupon': coupon.applied }"
+                flat
+                variant="outlined">
+                <v-card-text class="pa-3">
+                  <v-row no-gutters align="center">
+                    <v-col cols="12" sm="6">
+                      <div class="d-flex align-center">
+                        <v-icon 
+                          :color="coupon.applied ? 'teal-darken-1' : 'grey'" 
+                          class="mr-3"
+                          size="20">
+                          {{ coupon.applied ? 'mdi-check-circle' : 'mdi-ticket-percent' }}
+                        </v-icon>
+                        <div>
+                          <div class="text-body-2 font-weight-medium">{{ coupon.coupon_code }}</div>
+                          <div class="text-caption text-grey-darken-1">{{ coupon.pos_offer }}</div>
+                        </div>
+                      </div>
+                    </v-col>
+                    <v-col cols="6" sm="3">
+                      <v-chip 
+                        :color="coupon.type === 'Promotional' ? 'deep-purple-lighten-4' : 'orange-lighten-4'" 
+                        :text-color="coupon.type === 'Promotional' ? 'deep-purple-darken-2' : 'orange-darken-2'"
+                        variant="flat"
+                        size="small"
+                        class="font-weight-regular">
+                        {{ coupon.type }}
+                      </v-chip>
+                    </v-col>
+                    <v-col cols="6" sm="3" class="text-right">
+                      <span 
+                        v-if="coupon.applied"
+                        class="text-caption text-teal-darken-1 font-weight-medium">
+                        <v-icon size="x-small" class="mr-1">mdi-check</v-icon>
+                        {{ __('Applied') }}
+                      </span>
+                      <span 
+                        v-else
+                        class="text-caption text-grey">
+                        {{ __('Not Applied') }}
+                      </span>
+                    </v-col>
+                  </v-row>
+                </v-card-text>
+              </v-card>
+            </v-col>
+          </v-row>
+        </v-container>
+      </v-card-text>
+
+      <v-divider></v-divider>
+
+      <!-- Footer Actions -->
+      <v-card-actions class="pa-4 bg-grey-lighten-5">
+        <v-btn 
+          block 
+          size="large" 
+          color="grey-darken-2" 
+          variant="flat"
+          @click="back_to_invoice"
+          prepend-icon="mdi-arrow-left">
+          {{ __('Back to Invoice') }}
+        </v-btn>
+      </v-card-actions>
     </v-card>
   </div>
 </template>
 
 <script>
-
 export default {
   data: () => ({
     loading: false,
@@ -48,12 +160,6 @@ export default {
     new_coupon: null,
     itemsPerPage: 1000,
     singleExpand: true,
-    items_headers: [
-      { title: __('Coupon'), value: 'coupon_code', align: 'start' },
-      { title: __('Type'), value: 'type', align: 'start' },
-      { title: __('Offer'), value: 'pos_offer', align: 'start' },
-      { title: __('Applied'), value: 'applied', align: 'start' },
-    ],
   }),
 
   computed: {
@@ -210,3 +316,90 @@ export default {
   },
 };
 </script>
+
+<style scoped>
+.coupon-card {
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
+}
+
+.coupon-card:hover {
+  transform: translateX(-2px);
+  background-color: #FAFAFA;
+}
+
+.applied-coupon {
+  background-color: #F5F5F5;
+  border-left-color: #00897B;
+}
+
+.v-chip {
+  font-size: 0.75rem;
+}
+
+/* تحسينات الرسوم المتحركة */
+.v-card {
+  transition: all 0.2s ease;
+}
+
+.v-btn {
+  text-transform: none;
+  font-weight: 400;
+}
+
+/* تحسين شكل حقل الإدخال */
+.v-text-field :deep(.v-field__input) {
+  font-size: 0.875rem;
+}
+
+/* تحسين التمرير */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #d0d0d0;
+}
+
+/* دعم RTL */
+[dir="rtl"] .mr-3 {
+  margin-right: 0 !important;
+  margin-left: 0.75rem !important;
+}
+
+[dir="rtl"] .mr-2 {
+  margin-right: 0 !important;
+  margin-left: 0.5rem !important;
+}
+
+[dir="rtl"] .mr-1 {
+  margin-right: 0 !important;
+  margin-left: 0.25rem !important;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left !important;
+}
+
+[dir="rtl"] .coupon-card {
+  border-left: none !important;
+  border-right: 3px solid transparent;
+}
+
+[dir="rtl"] .applied-coupon {
+  border-right-color: #00897B;
+}
+
+[dir="rtl"] .coupon-card:hover {
+  transform: translateX(2px);
+}
+</style>

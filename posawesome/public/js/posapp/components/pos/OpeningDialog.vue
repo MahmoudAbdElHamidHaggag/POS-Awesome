@@ -1,46 +1,97 @@
 <template>
   <v-row justify="center">
     <v-dialog v-model="isOpen" persistent max-width="600px">
-      <!-- <template v-slot:activator="{ on, attrs }">
-        <v-btn color="primary" theme="dark" v-bind="attrs" v-on="on">Open Dialog</v-btn>
-      </template>-->
-      <v-card>
-        <v-card-title>
-          <span class="text-h5 text-primary">{{
+      <v-card class="elevation-0 rounded-lg" dir="rtl">
+        <v-card-title class="pa-5 bg-grey-lighten-4">
+          <v-icon class="ml-3" color="primary">mdi-cash-register</v-icon>
+          <span class="text-h6">{{
             __('Create POS Opening Shift')
           }}</span>
         </v-card-title>
-        <v-card-text>
-          <v-container>
+        
+        <v-divider></v-divider>
+        
+        <v-card-text class="pa-5">
+          <v-container class="pa-0">
             <v-row>
-              <v-col cols="12">
-                <v-autocomplete :items="companies" :label="frappe._('Company')" v-model="company"
-                  required></v-autocomplete>
+              <v-col cols="12" class="pb-3">
+                <v-autocomplete 
+                  :items="companies" 
+                  :label="frappe._('Company')" 
+                  v-model="company"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-domain"
+                  hide-details
+                  required>
+                </v-autocomplete>
               </v-col>
-              <v-col cols="12">
-                <v-autocomplete :items="pos_profiles" :label="frappe._('POS Profile')" v-model="pos_profile"
-                  required></v-autocomplete>
+              
+              <v-col cols="12" class="pb-3">
+                <v-autocomplete 
+                  :items="pos_profiles" 
+                  :label="frappe._('POS Profile')" 
+                  v-model="pos_profile"
+                  variant="outlined"
+                  density="comfortable"
+                  prepend-inner-icon="mdi-account"
+                  hide-details
+                  required>
+                </v-autocomplete>
               </v-col>
-              <v-col cols="12">
-                <v-data-table :headers="payments_methods_headers" :items="payments_methods" item-key="mode_of_payment"
-                  class="elevation-1" :items-per-page="itemsPerPage" hide-default-footer>
-                  <template v-slot:item.amount="props">
-                    <v-confirm-edit v-model:return-value="props.item.amount">
-                      {{ currencySymbol(props.item.currency) }}
-                      {{ formatCurrency(props.item.amount) }}
-                      <v-text-field v-model="props.item.amount" :rules="[max25chars]" :label="frappe._('Edit')"
-                        single-line counter type="number"></v-text-field>
-                    </v-confirm-edit>
-                  </template>
-                </v-data-table>
+              
+              <v-col cols="12" class="pt-3">
+                <div class="text-body-1 mb-3 text-grey-darken-1">
+                  {{ __('Payment Methods') }}
+                </div>
+                <v-table class="border rounded" density="comfortable">
+                  <thead>
+                    <tr>
+                      <th class="text-right bg-grey-lighten-5">{{ __('Mode of Payment') }}</th>
+                      <th class="text-left bg-grey-lighten-5">{{ __('Opening Amount') }}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr v-for="item in payments_methods" :key="item.mode_of_payment">
+                      <td class="text-right">{{ item.mode_of_payment }}</td>
+                      <td class="text-left">
+                        <v-text-field
+                          v-model="item.amount"
+                          type="number"
+                          variant="outlined"
+                          density="compact"
+                          hide-details
+                          single-line
+                          :prefix="currencySymbol(item.currency)">
+                        </v-text-field>
+                      </td>
+                    </tr>
+                  </tbody>
+                </v-table>
               </v-col>
             </v-row>
           </v-container>
         </v-card-text>
-        <v-card-actions>
+        
+        <v-divider></v-divider>
+        
+        <v-card-actions class="pa-5">
           <v-spacer></v-spacer>
-          <v-btn color="error" theme="dark" @click="go_desk">Cancel</v-btn>
-          <v-btn color="success" :disabled="is_loading" theme="dark" @click="submit_dialog">Submit</v-btn>
+          <v-btn 
+            variant="text"
+            color="grey-darken-1"
+            @click="go_desk">
+            {{ __('Cancel') }}
+          </v-btn>
+          <v-btn 
+            variant="flat"
+            color="primary" 
+            :disabled="is_loading" 
+            :loading="is_loading"
+            class="px-5"
+            @click="submit_dialog">
+            {{ __('Submit') }}
+          </v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -48,7 +99,6 @@
 </template>
 
 <script>
-
 import format from '../../format';
 export default {
   mixins: [format],
@@ -65,26 +115,7 @@ export default {
       pos_profile: '',
       payments_method_data: [],
       payments_methods: [],
-      payments_methods_headers: [
-        {
-          title: __('Mode of Payment'),
-          align: 'start',
-          sortable: false,
-          value: 'mode_of_payment',
-        },
-        {
-          title: __('Opening Amount'),
-          value: 'amount',
-          align: 'center',
-          sortable: false,
-        },
-      ],
-      itemsPerPage: 100,
-      max25chars: (v) => v.length <= 12 || 'Input too long!', // TODO : should validate as number
-      pagination: {},
-      snack: false, // TODO : need to remove
-      snackColor: '', // TODO : need to remove
-      snackText: '', // TODO : need to remove
+      max25chars: (v) => v.length <= 12 || 'Input too long!',
     };
   },
   watch: {
@@ -120,35 +151,17 @@ export default {
     },
     get_opening_dialog_data() {
       const vm = this;
-      // Load cached data first for offline usage
-      if (localStorage.opening_dialog_storage) {
-        try {
-          const cached = JSON.parse(localStorage.getItem('opening_dialog_storage'));
-          if (cached) {
-            vm.companies = cached.companies.map(c => c.name);
-            vm.pos_profiles_data = cached.pos_profiles_data || [];
-            vm.payments_method_data = cached.payments_method || [];
-            vm.company = vm.companies[0] || '';
-          }
-        } catch (e) {
-          console.error('Failed to parse opening dialog cache', e);
-        }
-      }
-
       frappe.call({
         method: 'posawesome.posawesome.api.posapp.get_opening_dialog_data',
         args: {},
         callback: function (r) {
           if (r.message) {
-            vm.companies = r.message.companies.map(element => element.name);
+            r.message.companies.forEach((element) => {
+              vm.companies.push(element.name);
+            });
+            vm.company = vm.companies[0];
             vm.pos_profiles_data = r.message.pos_profiles_data;
             vm.payments_method_data = r.message.payments_method;
-            vm.company = vm.companies[0] || '';
-            try {
-              localStorage.setItem('opening_dialog_storage', JSON.stringify(r.message));
-            } catch (e) {
-              console.error('Failed to cache opening dialog data', e);
-            }
           }
         },
       });
@@ -169,11 +182,6 @@ export default {
           if (r.message) {
             vm.eventBus.emit('register_pos_data', r.message);
             vm.eventBus.emit('set_company', r.message.company);
-            try {
-              localStorage.setItem('pos_opening_storage', JSON.stringify(r.message));
-            } catch (e) {
-              console.error('Failed to cache opening data', e);
-            }
             vm.close_opening_dialog();
             vm.is_loading = false;
           }
@@ -184,11 +192,66 @@ export default {
       location.reload();
     },
   },
-  mounted: function () {
-    this.get_opening_dialog_data();
-  },
-  beforeUnmount() {
-    // Clean up event listeners if any were added
+  created: function () {
+    this.$nextTick(function () {
+      this.get_opening_dialog_data();
+    });
   },
 };
 </script>
+
+<style scoped>
+[dir="rtl"] .v-icon {
+  transform: scaleX(-1);
+}
+
+[dir="rtl"] .ml-3 {
+  margin-left: 0 !important;
+  margin-right: 0.75rem !important;
+}
+
+[dir="rtl"] .mr-1 {
+  margin-right: 0 !important;
+  margin-left: 0.25rem !important;
+}
+
+[dir="rtl"] .text-left {
+  text-align: right !important;
+}
+
+[dir="rtl"] .text-right {
+  text-align: left !important;
+}
+
+.v-card {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.v-table {
+  border: 1px solid #e0e0e0;
+}
+
+.cursor-pointer {
+  cursor: pointer;
+}
+
+.hover-bg {
+  transition: background-color 0.2s ease;
+}
+
+.hover-bg:hover {
+  background-color: #f5f5f5;
+}
+
+.v-field--focused {
+  box-shadow: 0 0 0 2px rgba(25, 118, 210, 0.1);
+}
+
+.v-field__outline {
+  color: #e0e0e0;
+}
+
+.v-btn--variant-flat {
+  box-shadow: none !important;
+}
+</style>
